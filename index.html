@@ -1,0 +1,1118 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>מערכת ניהול אירועים</title>
+    <link rel="icon" href="https://i.postimg.cc/3RjpGvG8/Whats-App-Image-2024-05-01-at-13-19-47.jpg" type="image/jpeg">
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/hdate@0.7.4/dist/hdate.min.js"></script>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-image: url('https://i.postimg.cc/yYyQKDrz/image.png');
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            background-attachment: fixed;
+            min-height: 100vh;
+        }
+        .backdrop {
+            background-color: rgba(0, 0, 0, 0.3);
+            min-height: 100vh;
+        }
+        .glass {
+            background-color: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(10px);
+        }
+        .modal {
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+        .calendar-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 2px;
+        }
+        .calendar-day {
+            min-height: 100px;
+            padding: 8px;
+            border: 1px solid #e2e8f0;
+            background-color: white;
+            transition: background-color 0.2s;
+        }
+        .calendar-day:hover {
+            background-color: #f8fafc;
+        }
+        .calendar-day.today {
+            background-color: #dbeafe;
+            border-color: #3b82f6;
+        }
+        .calendar-day.other-month {
+            opacity: 0.5;
+        }
+        .event-item {
+            font-size: 0.75rem;
+            padding: 2px 4px;
+            border-radius: 4px;
+            margin-bottom: 2px;
+            cursor: pointer;
+            transition: transform 0.1s;
+        }
+        .event-item:hover {
+            transform: scale(1.02);
+        }
+        .status-quote { background-color: #fef3c7; color: #92400e; }
+        .status-closed { background-color: #dbeafe; color: #1e40af; }
+        .status-ready { background-color: #d1fae5; color: #065f46; }
+        .status-past { background-color: #f3f4f6; color: #374151; }
+        .hidden { display: none; }
+    </style>
+</head>
+<body>
+    <div class="backdrop">
+        <!-- Header -->
+        <header class="glass shadow-lg">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="flex justify-between items-center h-16">
+                    <div class="flex items-center">
+                        <img src="https://i.postimg.cc/3RjpGvG8/Whats-App-Image-2024-05-01-at-13-19-47.jpg" alt="לוגו" class="h-10 w-10 rounded-full">
+                        <h1 class="mr-3 text-xl font-bold text-gray-900">מערכת ניהול אירועים</h1>
+                    </div>
+                    <nav class="flex space-x-8 space-x-reverse">
+                        <button onclick="setCurrentView('dashboard')" class="nav-btn flex items-center px-3 py-2 rounded-md text-sm font-medium text-gray-600 hover:text-gray-900" data-view="dashboard">
+                            <i class="fas fa-home ml-2"></i>
+                            דשבורד
+                        </button>
+                        <button onclick="setCurrentView('events')" class="nav-btn flex items-center px-3 py-2 rounded-md text-sm font-medium text-gray-600 hover:text-gray-900" data-view="events">
+                            <i class="fas fa-calendar ml-2"></i>
+                            אירועים
+                        </button>
+                        <button onclick="setCurrentView('suppliers')" class="nav-btn flex items-center px-3 py-2 rounded-md text-sm font-medium text-gray-600 hover:text-gray-900" data-view="suppliers">
+                            <i class="fas fa-box ml-2"></i>
+                            ספקים
+                        </button>
+                        <button onclick="setCurrentView('clients')" class="nav-btn flex items-center px-3 py-2 rounded-md text-sm font-medium text-gray-600 hover:text-gray-900" data-view="clients">
+                            <i class="fas fa-users ml-2"></i>
+                            לקוחות
+                        </button>
+                    </nav>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
+            <div class="px-4 py-6 sm:px-0">
+                
+                <!-- Dashboard View -->
+                <div id="dashboard-view" class="view space-y-6">
+                    <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+                        <div class="glass rounded-lg shadow-lg p-6">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <p class="text-sm font-medium text-gray-600">סך הכל אירועים</p>
+                                    <p class="text-2xl font-bold text-gray-900" id="total-events">0</p>
+                                </div>
+                                <i class="fas fa-calendar text-blue-600 text-2xl"></i>
+                            </div>
+                        </div>
+                        <div class="glass rounded-lg shadow-lg p-6">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <p class="text-sm font-medium text-gray-600">אירועים עתידיים</p>
+                                    <p class="text-2xl font-bold text-gray-900" id="upcoming-events">0</p>
+                                </div>
+                                <i class="fas fa-clock text-green-600 text-2xl"></i>
+                            </div>
+                        </div>
+                        <div class="glass rounded-lg shadow-lg p-6">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <p class="text-sm font-medium text-gray-600">הצעות מחיר</p>
+                                    <p class="text-2xl font-bold text-gray-900" id="quotes-only">0</p>
+                                </div>
+                                <i class="fas fa-file-alt text-yellow-600 text-2xl"></i>
+                            </div>
+                        </div>
+                        <div class="glass rounded-lg shadow-lg p-6">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <p class="text-sm font-medium text-gray-600">סך הכנסות</p>
+                                    <p class="text-2xl font-bold text-gray-900" id="total-revenue">₪0</p>
+                                </div>
+                                <i class="fas fa-dollar-sign text-purple-600 text-2xl"></i>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="glass rounded-lg shadow-lg p-6">
+                        <h3 class="text-lg font-semibold text-gray-800 mb-4">לוח השנה</h3>
+                        <div id="calendar-container"></div>
+                    </div>
+                </div>
+
+                <!-- Events View -->
+                <div id="events-view" class="view hidden">
+                    <div class="glass rounded-lg shadow-lg p-6">
+                        <div class="flex justify-between items-center mb-6">
+                            <h2 class="text-2xl font-bold text-gray-800">אירועים</h2>
+                            <div class="flex gap-3">
+                                <button onclick="exportEvents()" class="bg-green-500 text-white px-4 py-2 rounded-md hover:bg-green-600 flex items-center gap-2">
+                                    <i class="fas fa-download"></i>
+                                    ייצוא
+                                </button>
+                                <button onclick="createNewEvent()" class="bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600 flex items-center gap-2">
+                                    <i class="fas fa-plus"></i>
+                                    אירוע חדש
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div class="flex flex-col md:flex-row gap-4 mb-6">
+                            <div class="flex-1">
+                                <input type="text" id="search-events" placeholder="חיפוש לפי שם או תאריך..." class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            </div>
+                            <div class="flex gap-2">
+                                <select id="status-filter" class="px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                    <option value="">כל הסטטוסים</option>
+                                    <option value="quote">הצעת מחיר בלבד</option>
+                                    <option value="closed">אירוע סגור</option>
+                                    <option value="ready">אירוע תפור</option>
+                                    <option value="past">אירוע עבר</option>
+                                </select>
+                                <button onclick="sortEventsByDate()" class="px-4 py-2 bg-gray-200 rounded-md hover:bg-gray-300">
+                                    <i class="fas fa-sort"></i>
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div class="overflow-x-auto">
+                            <table class="w-full">
+                                <thead>
+                                    <tr class="border-b border-gray-200">
+                                        <th class="text-right p-3 font-semibold text-gray-700">שם החתן</th>
+                                        <th class="text-right p-3 font-semibold text-gray-700">תאריך</th>
+                                        <th class="text-right p-3 font-semibold text-gray-700">סטטוס</th>
+                                        <th class="text-right p-3 font-semibold text-gray-700">משתתפים</th>
+                                        <th class="text-right p-3 font-semibold text-gray-700">עלות</th>
+                                        <th class="text-right p-3 font-semibold text-gray-700">יתרה</th>
+                                        <th class="text-right p-3 font-semibold text-gray-700">פעולות</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="events-table-body">
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Suppliers View -->
+                <div id="suppliers-view" class="view hidden">
+                    <div class="glass rounded-lg shadow-lg p-6">
+                        <div class="flex justify-between items-center mb-6">
+                            <h2 class="text-2xl font-bold text-gray-800">ספקים</h2>
+                            <button onclick="createNewSupplier()" class="bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600 flex items-center gap-2">
+                                <i class="fas fa-plus"></i>
+                                ספק חדש
+                            </button>
+                        </div>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" id="suppliers-container">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Clients View -->
+                <div id="clients-view" class="view hidden">
+                    <div class="glass rounded-lg shadow-lg p-6">
+                        <div class="flex justify-between items-center mb-6">
+                            <h2 class="text-2xl font-bold text-gray-800">לקוחות</h2>
+                            <button onclick="exportClients()" class="bg-green-500 text-white px-4 py-2 rounded-md hover:bg-green-600 flex items-center gap-2">
+                                <i class="fas fa-download"></i>
+                                ייצוא
+                            </button>
+                        </div>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" id="clients-container">
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- Event Modal -->
+        <div id="event-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 hidden">
+            <div class="bg-white rounded-lg shadow-xl max-w-4xl w-full modal">
+                <div class="p-6">
+                    <div class="flex justify-between items-center mb-6">
+                        <h2 class="text-2xl font-bold text-gray-800" id="modal-title">פרטי אירוע</h2>
+                        <button onclick="closeEventModal()" class="p-2 hover:bg-gray-100 rounded-full">
+                            <i class="fas fa-times text-xl"></i>
+                        </button>
+                    </div>
+                    
+                    <div class="space-y-6">
+                        <!-- Basic Info -->
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">שם החתן</label>
+                                <input type="text" id="groom-name" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">שם משפחה</label>
+                                <input type="text" id="groom-lastname" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">תאריך האירוע</label>
+                                <input type="date" id="event-date" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">סטטוס</label>
+                                <select id="event-status" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                    <option value="quote">הצעת מחיר בלבד</option>
+                                    <option value="closed">אירוע סגור</option>
+                                    <option value="ready">אירוע תפור</option>
+                                    <option value="past">אירוע עבר</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">מספר משתתפים</label>
+                                <input type="number" id="participants" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">שעת התחלה</label>
+                                <input type="time" id="start-time" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            </div>
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">קונספט האירוע</label>
+                            <input type="text" id="event-concept" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        </div>
+                        
+                        <!-- Parents -->
+                        <div>
+                            <div class="flex justify-between items-center mb-3">
+                                <h3 class="text-lg font-semibold text-gray-800">הורים</h3>
+                                <button onclick="addParent()" class="bg-blue-500 text-white px-3 py-1 rounded-md hover:bg-blue-600 flex items-center gap-1">
+                                    <i class="fas fa-plus"></i>
+                                    הוסף הורה
+                                </button>
+                            </div>
+                            <div id="parents-container"></div>
+                        </div>
+                        
+                        <!-- Schedule -->
+                        <div>
+                            <div class="flex justify-between items-center mb-3">
+                                <h3 class="text-lg font-semibold text-gray-800">לוח זמנים</h3>
+                                <button onclick="addScheduleItem()" class="bg-blue-500 text-white px-3 py-1 rounded-md hover:bg-blue-600 flex items-center gap-1">
+                                    <i class="fas fa-plus"></i>
+                                    הוסף פריט
+                                </button>
+                            </div>
+                            <div id="schedule-container"></div>
+                        </div>
+                        
+                        <!-- Description -->
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">תיאור האירוע</label>
+                            <textarea id="event-description" rows="4" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"></textarea>
+                        </div>
+                        
+                        <!-- Services -->
+                        <div>
+                            <div class="flex justify-between items-center mb-3">
+                                <h3 class="text-lg font-semibold text-gray-800">שירותים</h3>
+                                <div class="flex items-center gap-3">
+                                    <label class="flex items-center gap-2">
+                                        <input type="checkbox" id="all-included" class="rounded">
+                                        <span class="text-sm font-medium">הכל כלול</span>
+                                    </label>
+                                    <button onclick="addService()" class="bg-blue-500 text-white px-3 py-1 rounded-md hover:bg-blue-600 flex items-center gap-1">
+                                        <i class="fas fa-plus"></i>
+                                        הוסף שירות
+                                    </button>
+                                </div>
+                            </div>
+                            
+                            <div id="total-cost-container" class="mb-4 hidden">
+                                <label class="block text-sm font-medium text-gray-700 mb-1">מחיר חבילה כוללת</label>
+                                <input type="number" id="total-cost" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            </div>
+                            
+                            <div id="services-container"></div>
+                            
+                            <div id="services-total" class="bg-blue-50 p-3 rounded-md hidden">
+                                <p class="text-lg font-semibold text-blue-800">
+                                    סך הכל שירותים: ₪<span id="services-total-amount">0</span>
+                                </p>
+                            </div>
+                        </div>
+                        
+                        <!-- Payments -->
+                        <div>
+                            <div class="flex justify-between items-center mb-3">
+                                <h3 class="text-lg font-semibold text-gray-800">תשלומים</h3>
+                                <button onclick="addPayment()" class="bg-green-500 text-white px-3 py-1 rounded-md hover:bg-green-600 flex items-center gap-1">
+                                    <i class="fas fa-plus"></i>
+                                    הוסף תשלום
+                                </button>
+                            </div>
+                            <div id="payments-container"></div>
+                            
+                            <div class="bg-green-50 p-4 rounded-md">
+                                <div class="flex justify-between items-center">
+                                    <p class="text-lg font-semibold text-green-800">
+                                        סך הכל שולם: ₪<span id="total-paid">0</span>
+                                    </p>
+                                    <p class="text-lg font-semibold" id="balance-display">
+                                        יתרה לתשלום: ₪<span id="balance-amount">0</span>
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="flex justify-end gap-3 mt-6 pt-6 border-t">
+                        <button onclick="closeEventModal()" class="px-4 py-2 text-gray-600 hover:text-gray-800">
+                            ביטול
+                        </button>
+                        <button onclick="deleteEvent()" class="bg-red-500 text-white px-4 py-2 rounded-md hover:bg-red-600" id="delete-btn">
+                            מחק
+                        </button>
+                        <button onclick="saveEvent()" class="bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600 flex items-center gap-2">
+                            <i class="fas fa-save"></i>
+                            שמירה
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Global variables
+        let currentView = 'dashboard';
+        let currentDate = new Date();
+        let events = [];
+        let suppliers = [];
+        let clients = [];
+        let currentEvent = null;
+        let currentEventId = null;
+
+        // Default services
+        const defaultServices = [
+            'נגן גיטרה', 'נשפן', 'מתופף', 'כנר', 'נגן בוזוקי', 'צלם', 'ארוחת בוקר',
+            'אוטובוס 55 מקומות', 'אוטובוס 60 מקומות', 'מיניבוס', 'רכב גולף', 'אומן בר מצווה',
+            'הפקה', 'איש הפקה', 'כיפות ממותגות', 'שאלים', 'חבילת עיצוב', 'דיג\'יי',
+            'בלונים להפרחה', 'מים קרים לחלוקה', 'כתיבת אותיות בספר תורה', 'קולמוס הלב', 'נגינה במסעדה'
+        ];
+
+        // Event statuses
+        const eventStatuses = {
+            quote: 'הצעת מחיר בלבד',
+            closed: 'אירוע סגור',
+            ready: 'אירוע תפור',
+            past: 'אירוע עבר'
+        };
+
+        // Hebrew months
+        const hebrewMonths = [
+            'תשרי', 'חשון', 'כסלו', 'טבת', 'שבט', 'אדר', 'ניסן', 'אייר', 'סיון', 'תמוז', 'אב', 'אלול'
+        ];
+
+        // Load data from localStorage
+        function loadData() {
+            const savedEvents = localStorage.getItem('barMitzvahEvents');
+            const savedSuppliers = localStorage.getItem('barMitzvahSuppliers');
+            const savedClients = localStorage.getItem('barMitzvahClients');
+            
+            if (savedEvents) events = JSON.parse(savedEvents);
+            if (savedSuppliers) suppliers = JSON.parse(savedSuppliers);
+            if (savedClients) clients = JSON.parse(savedClients);
+        }
+
+        // Save data to localStorage
+        function saveData() {
+            localStorage.setItem('barMitzvahEvents', JSON.stringify(events));
+            localStorage.setItem('barMitzvahSuppliers', JSON.stringify(suppliers));
+            localStorage.setItem('barMitzvahClients', JSON.stringify(clients));
+        }
+
+        // Hebrew date functions
+        function getHebrewDate(date) {
+            try {
+                const hd = new Hebcal.HDate(date);
+                return hd.toString('h');
+            } catch (e) {
+                // Fallback if library doesn't work
+                const jewishYear = date.getFullYear() + 3760;
+                const monthIndex = (date.getMonth() + 6) % 12;
+                const day = date.getDate();
+                return `${day} ${hebrewMonths[monthIndex]} ${jewishYear}`;
+            }
+        }
+
+        function getJewishHolidays(year, month) {
+            const holidays = {
+                9: { 1: 'ראש השנה', 10: 'יום כיפור', 15: 'סוכות', 21: 'הושענא רבה', 22: 'שמחת תורה' },
+                11: { 25: 'חנוכה' },
+                12: { 15: 'ט"ו בשבט' },
+                2: { 14: 'פורים' },
+                3: { 15: 'פסח' },
+                4: { 18: 'ל"ג בעומר' },
+                5: { 6: 'שבועות' },
+                6: { 9: 'תשעה באב' }
+            };
+            return holidays[month + 1] || {};
+        }
+
+        // Navigation functions
+        function setCurrentView(view) {
+            currentView = view;
+            
+            // Update nav buttons
+            document.querySelectorAll('.nav-btn').forEach(btn => {
+                btn.classList.remove('bg-blue-100', 'text-blue-700');
+                btn.classList.add('text-gray-600', 'hover:text-gray-900');
+            });
+            
+            document.querySelector(`[data-view="${view}"]`).classList.remove('text-gray-600', 'hover:text-gray-900');
+            document.querySelector(`[data-view="${view}"]`).classList.add('bg-blue-100', 'text-blue-700');
+            
+            // Hide all views
+            document.querySelectorAll('.view').forEach(v => v.classList.add('hidden'));
+            
+            // Show current view
+            document.getElementById(`${view}-view`).classList.remove('hidden');
+            
+            // Render content
+            if (view === 'dashboard') renderDashboard();
+            else if (view === 'events') renderEvents();
+            else if (view === 'suppliers') renderSuppliers();
+            else if (view === 'clients') renderClients();
+        }
+
+        // Dashboard functions
+        function renderDashboard() {
+            const totalEvents = events.length;
+            const upcomingEvents = events.filter(e => new Date(e.date) > new Date() && e.status !== 'past').length;
+            const quotesOnly = events.filter(e => e.status === 'quote').length;
+            const totalRevenue = events.reduce((sum, event) => {
+                if (event.allIncluded) return sum + (event.totalCost || 0);
+                return sum + (event.services?.reduce((s, service) => s + (service.price || 0), 0) || 0);
+            }, 0);
+            
+            document.getElementById('total-events').textContent = totalEvents;
+            document.getElementById('upcoming-events').textContent = upcomingEvents;
+            document.getElementById('quotes-only').textContent = quotesOnly;
+            document.getElementById('total-revenue').textContent = `₪${totalRevenue.toLocaleString()}`;
+            
+            renderCalendar();
+        }
+
+        // Calendar functions
+        function renderCalendar() {
+            const container = document.getElementById('calendar-container');
+            const year = currentDate.getFullYear();
+            const month = currentDate.getMonth();
+            const today = new Date();
+            
+            const firstDay = new Date(year, month, 1);
+            const lastDay = new Date(year, month + 1, 0);
+            const startDate = new Date(firstDay);
+            startDate.setDate(startDate.getDate() - firstDay.getDay());
+            
+            const days = [];
+            const current = new Date(startDate);
+            
+            while (current <= lastDay || current.getDay() !== 0) {
+                days.push(new Date(current));
+                current.setDate(current.getDate() + 1);
+            }
+            
+            const holidays = getJewishHolidays(year, month);
+            
+            container.innerHTML = `
+                <div class="flex justify-between items-center mb-6">
+                    <button onclick="navigateMonth(-1)" class="p-2 hover:bg-blue-100 rounded-full">
+                        <i class="fas fa-chevron-right text-blue-600"></i>
+                    </button>
+                    <h2 class="text-2xl font-bold text-gray-800">
+                        ${currentDate.toLocaleDateString('he-IL', { month: 'long', year: 'numeric' })}
+                    </h2>
+                    <button onclick="navigateMonth(1)" class="p-2 hover:bg-blue-100 rounded-full">
+                        <i class="fas fa-chevron-left text-blue-600"></i>
+                    </button>
+                </div>
+                
+                <div class="grid grid-cols-7 gap-1 mb-2">
+                    ${['א', 'ב', 'ג', 'ד', 'ה', 'ו', 'ש'].map(day => 
+                        `<div class="text-center font-semibold text-gray-600 p-2">${day}</div>`
+                    ).join('')}
+                </div>
+                
+                <div class="calendar-grid">
+                    ${days.map(day => {
+                        const dayEvents = getEventsForDate(day);
+                        const isToday = day.toDateString() === today.toDateString();
+                        const isCurrentMonth = day.getMonth() === month;
+                        const holiday = holidays[day.getDate()];
+                        
+                        return `
+                            <div class="calendar-day ${isToday ? 'today' : ''} ${!isCurrentMonth ? 'other-month' : ''}">
+                                <div class="text-sm font-medium text-gray-800">${day.getDate()}</div>
+                                <div class="text-xs text-gray-600 mb-1">${getHebrewDate(day).split(' ')[0]}</div>
+                                ${holiday ? `<div class="text-xs text-purple-600 font-medium mb-1">${holiday}</div>` : ''}
+                                ${dayEvents.map(event => `
+                                    <div class="event-item status-${event.status}" onclick="openEventModal('${event.id}')">
+                                        בר מצווה של ${event.groomName} ${event.groomLastName}
+                                    </div>
+                                `).join('')}
+                            </div>
+                        `;
+                    }).join('')}
+                </div>
+            `;
+        }
+
+        function navigateMonth(direction) {
+            const newDate = new Date(currentDate);
+            newDate.setMonth(currentDate.getMonth() + direction);
+            currentDate = newDate;
+            renderCalendar();
+        }
+
+        function getEventsForDate(date) {
+            const dateStr = date.toISOString().split('T')[0];
+            return events.filter(event => event.date === dateStr);
+        }
+
+        // Event functions
+        function renderEvents() {
+            const searchTerm = document.getElementById('search-events').value.toLowerCase();
+            const statusFilter = document.getElementById('status-filter').value;
+            
+            const filteredEvents = events.filter(event => {
+                const matchesSearch = searchTerm === '' || 
+                    `${event.groomName} ${event.groomLastName}`.toLowerCase().includes(searchTerm) ||
+                    event.date.includes(searchTerm);
+                
+                const matchesFilter = statusFilter === '' || event.status === statusFilter;
+                
+                return matchesSearch && matchesFilter;
+            });
+            
+            const tbody = document.getElementById('events-table-body');
+            tbody.innerHTML = filteredEvents.map(event => {
+                const totalCost = event.allIncluded ? event.totalCost : 
+                    (event.services?.reduce((sum, s) => sum + (s.price || 0), 0) || 0);
+                const totalPaid = event.payments?.reduce((sum, p) => sum + (p.amount || 0), 0) || 0;
+                const balance = totalCost - totalPaid;
+                
+                return `
+                    <tr class="border-b border-gray-100 hover:bg-gray-50">
+                        <td class="p-3">${event.groomName} ${event.groomLastName}</td>
+                        <td class="p-3">${new Date(event.date).toLocaleDateString('he-IL')}</td>
+                        <td class="p-3">
+                            <span class="px-2 py-1 rounded-full text-xs font-medium status-${event.status}">
+                                ${eventStatuses[event.status]}
+                            </span>
+                        </td>
+                        <td class="p-3">${event.participants || ''}</td>
+                        <td class="p-3">₪${totalCost.toLocaleString()}</td>
+                        <td class="p-3">
+                            <span class="${balance > 0 ? 'text-red-600' : 'text-green-600'}">
+                                ₪${balance.toLocaleString()}
+                            </span>
+                        </td>
+                        <td class="p-3">
+                            <button onclick="openEventModal('${event.id}')" class="text-blue-600 hover:text-blue-800">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        function sortEventsByDate() {
+            events.sort((a, b) => new Date(a.date) - new Date(b.date));
+            renderEvents();
+        }
+
+        function createNewEvent() {
+            currentEvent = {
+                id: Date.now().toString(),
+                groomName: '',
+                groomLastName: '',
+                parents: [{ name: '', phone: '', email: '' }],
+                date: '',
+                participants: '',
+                concept: '',
+                startTime: '',
+                schedule: [{ time: '', description: '' }],
+                description: '',
+                services: [],
+                allIncluded: false,
+                totalCost: 0,
+                payments: [],
+                status: 'quote'
+            };
+            currentEventId = null;
+            openEventModal();
+        }
+
+        function openEventModal(eventId = null) {
+            if (eventId) {
+                currentEvent = events.find(e => e.id === eventId);
+                currentEventId = eventId;
+                document.getElementById('modal-title').textContent = 'עריכת אירוע';
+                document.getElementById('delete-btn').style.display = 'block';
+            } else {
+                document.getElementById('modal-title').textContent = 'אירוע חדש';
+                document.getElementById('delete-btn').style.display = 'none';
+            }
+            
+            populateEventModal();
+            document.getElementById('event-modal').classList.remove('hidden');
+        }
+
+        function populateEventModal() {
+            document.getElementById('groom-name').value = currentEvent.groomName || '';
+            document.getElementById('groom-lastname').value = currentEvent.groomLastName || '';
+            document.getElementById('event-date').value = currentEvent.date || '';
+            document.getElementById('event-status').value = currentEvent.status || 'quote';
+            document.getElementById('participants').value = currentEvent.participants || '';
+            document.getElementById('start-time').value = currentEvent.startTime || '';
+            document.getElementById('event-concept').value = currentEvent.concept || '';
+            document.getElementById('event-description').value = currentEvent.description || '';
+            document.getElementById('all-included').checked = currentEvent.allIncluded || false;
+            document.getElementById('total-cost').value = currentEvent.totalCost || 0;
+            
+            toggleTotalCost();
+            renderParents();
+            renderSchedule();
+            renderServices();
+            renderPayments();
+        }
+
+        function closeEventModal() {
+            document.getElementById('event-modal').classList.add('hidden');
+            currentEvent = null;
+            currentEventId = null;
+        }
+
+        function saveEvent() {
+            // Collect data from form
+            currentEvent.groomName = document.getElementById('groom-name').value;
+            currentEvent.groomLastName = document.getElementById('groom-lastname').value;
+            currentEvent.date = document.getElementById('event-date').value;
+            currentEvent.status = document.getElementById('event-status').value;
+            currentEvent.participants = document.getElementById('participants').value;
+            currentEvent.startTime = document.getElementById('start-time').value;
+            currentEvent.concept = document.getElementById('event-concept').value;
+            currentEvent.description = document.getElementById('event-description').value;
+            currentEvent.allIncluded = document.getElementById('all-included').checked;
+            currentEvent.totalCost = parseFloat(document.getElementById('total-cost').value) || 0;
+            
+            // Collect parents
+            currentEvent.parents = [];
+            document.querySelectorAll('#parents-container .parent-row').forEach(row => {
+                const name = row.querySelector('.parent-name').value;
+                const phone = row.querySelector('.parent-phone').value;
+                const email = row.querySelector('.parent-email').value;
+                if (name || phone || email) {
+                    currentEvent.parents.push({ name, phone, email });
+                }
+            });
+            
+            // Collect schedule
+            currentEvent.schedule = [];
+            document.querySelectorAll('#schedule-container .schedule-row').forEach(row => {
+                const time = row.querySelector('.schedule-time').value;
+                const description = row.querySelector('.schedule-description').value;
+                if (time || description) {
+                    currentEvent.schedule.push({ time, description });
+                }
+            });
+            
+            // Collect services
+            currentEvent.services = [];
+            document.querySelectorAll('#services-container .service-row').forEach(row => {
+                const name = row.querySelector('.service-name').value;
+                const price = parseFloat(row.querySelector('.service-price')?.value) || 0;
+                const supplier = row.querySelector('.service-supplier').value;
+                if (name) {
+                    currentEvent.services.push({ name, price, supplier });
+                }
+            });
+            
+            // Collect payments
+            currentEvent.payments = [];
+            document.querySelectorAll('#payments-container .payment-row').forEach(row => {
+                const amount = parseFloat(row.querySelector('.payment-amount').value) || 0;
+                const date = row.querySelector('.payment-date').value;
+                const note = row.querySelector('.payment-note').value;
+                if (amount || date || note) {
+                    currentEvent.payments.push({ amount, date, note });
+                }
+            });
+            
+            // Save to events array
+            if (currentEventId) {
+                const index = events.findIndex(e => e.id === currentEventId);
+                events[index] = currentEvent;
+            } else {
+                events.push(currentEvent);
+            }
+            
+            saveData();
+            closeEventModal();
+            
+            if (currentView === 'events') renderEvents();
+            else if (currentView === 'dashboard') renderDashboard();
+        }
+
+        function deleteEvent() {
+            if (currentEventId && confirm('האם אתה בטוח שברצונך למחוק את האירוע?')) {
+                events = events.filter(e => e.id !== currentEventId);
+                saveData();
+                closeEventModal();
+                
+                if (currentView === 'events') renderEvents();
+                else if (currentView === 'dashboard') renderDashboard();
+            }
+        }
+
+        // Parents functions
+        function renderParents() {
+            const container = document.getElementById('parents-container');
+            container.innerHTML = (currentEvent.parents || []).map((parent, index) => `
+                <div class="parent-row grid grid-cols-1 md:grid-cols-3 gap-4 mb-3 p-3 bg-gray-50 rounded-md">
+                    <input type="text" placeholder="שם" class="parent-name px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" value="${parent.name || ''}">
+                    <input type="tel" placeholder="טלפון" class="parent-phone px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" value="${parent.phone || ''}">
+                    <input type="email" placeholder="מייל" class="parent-email px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" value="${parent.email || ''}">
+                </div>
+            `).join('');
+        }
+
+        function addParent() {
+            const container = document.getElementById('parents-container');
+            const newRow = document.createElement('div');
+            newRow.className = 'parent-row grid grid-cols-1 md:grid-cols-3 gap-4 mb-3 p-3 bg-gray-50 rounded-md';
+            newRow.innerHTML = `
+                <input type="text" placeholder="שם" class="parent-name px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <input type="tel" placeholder="טלפון" class="parent-phone px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <input type="email" placeholder="מייל" class="parent-email px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+            `;
+            container.appendChild(newRow);
+        }
+
+        // Schedule functions
+        function renderSchedule() {
+            const container = document.getElementById('schedule-container');
+            container.innerHTML = (currentEvent.schedule || []).map((item, index) => `
+                <div class="schedule-row grid grid-cols-1 md:grid-cols-2 gap-4 mb-3 p-3 bg-gray-50 rounded-md">
+                    <input type="time" class="schedule-time px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" value="${item.time || ''}">
+                    <input type="text" placeholder="תיאור" class="schedule-description px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" value="${item.description || ''}">
+                </div>
+            `).join('');
+        }
+
+        function addScheduleItem() {
+            const container = document.getElementById('schedule-container');
+            const newRow = document.createElement('div');
+            newRow.className = 'schedule-row grid grid-cols-1 md:grid-cols-2 gap-4 mb-3 p-3 bg-gray-50 rounded-md';
+            newRow.innerHTML = `
+                <input type="time" class="schedule-time px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <input type="text" placeholder="תיאור" class="schedule-description px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+            `;
+            container.appendChild(newRow);
+        }
+
+        // Services functions
+        function renderServices() {
+            const container = document.getElementById('services-container');
+            container.innerHTML = (currentEvent.services || []).map((service, index) => `
+                <div class="service-row grid grid-cols-1 md:grid-cols-3 gap-4 mb-3 p-3 bg-gray-50 rounded-md">
+                    <select class="service-name px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <option value="">בחר שירות</option>
+                        ${defaultServices.map(s => `<option value="${s}" ${service.name === s ? 'selected' : ''}>${s}</option>`).join('')}
+                        <option value="custom" ${service.name === 'custom' ? 'selected' : ''}>שירות מותאם אישית</option>
+                    </select>
+                    ${currentEvent.allIncluded ? '' : `<input type="number" placeholder="מחיר" class="service-price px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" value="${service.price || ''}" oninput="updateServicesTotal()">`}
+                    <select class="service-supplier px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <option value="">בחר ספק</option>
+                        ${suppliers.map(s => `<option value="${s.name}" ${service.supplier === s.name ? 'selected' : ''}>${s.name}</option>`).join('')}
+                    </select>
+                </div>
+            `).join('');
+            
+            updateServicesTotal();
+        }
+
+        function addService() {
+            const container = document.getElementById('services-container');
+            const newRow = document.createElement('div');
+            newRow.className = 'service-row grid grid-cols-1 md:grid-cols-3 gap-4 mb-3 p-3 bg-gray-50 rounded-md';
+            newRow.innerHTML = `
+                <select class="service-name px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <option value="">בחר שירות</option>
+                    ${defaultServices.map(s => `<option value="${s}">${s}</option>`).join('')}
+                    <option value="custom">שירות מותאם אישית</option>
+                </select>
+                ${currentEvent.allIncluded ? '' : `<input type="number" placeholder="מחיר" class="service-price px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" oninput="updateServicesTotal()">`}
+                <select class="service-supplier px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <option value="">בחר ספק</option>
+                    ${suppliers.map(s => `<option value="${s.name}">${s.name}</option>`).join('')}
+                </select>
+            `;
+            container.appendChild(newRow);
+        }
+
+        function toggleTotalCost() {
+            const allIncluded = document.getElementById('all-included').checked;
+            const totalCostContainer = document.getElementById('total-cost-container');
+            const servicesTotal = document.getElementById('services-total');
+            
+            if (allIncluded) {
+                totalCostContainer.classList.remove('hidden');
+                servicesTotal.classList.add('hidden');
+            } else {
+                totalCostContainer.classList.add('hidden');
+                servicesTotal.classList.remove('hidden');
+            }
+            
+            // Re-render services to show/hide price inputs
+            renderServices();
+        }
+
+        function updateServicesTotal() {
+            let total = 0;
+            document.querySelectorAll('.service-price').forEach(input => {
+                total += parseFloat(input.value) || 0;
+            });
+            document.getElementById('services-total-amount').textContent = total.toLocaleString();
+            updatePaymentsBalance();
+        }
+
+        // Payments functions
+        function renderPayments() {
+            const container = document.getElementById('payments-container');
+            container.innerHTML = (currentEvent.payments || []).map((payment, index) => `
+                <div class="payment-row grid grid-cols-1 md:grid-cols-3 gap-4 mb-3 p-3 bg-gray-50 rounded-md">
+                    <input type="number" placeholder="סכום" class="payment-amount px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" value="${payment.amount || ''}" oninput="updatePaymentsBalance()">
+                    <input type="date" class="payment-date px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" value="${payment.date || ''}">
+                    <input type="text" placeholder="הערות" class="payment-note px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" value="${payment.note || ''}">
+                </div>
+            `).join('');
+            
+            updatePaymentsBalance();
+        }
+
+        function addPayment() {
+            const container = document.getElementById('payments-container');
+            const newRow = document.createElement('div');
+            newRow.className = 'payment-row grid grid-cols-1 md:grid-cols-3 gap-4 mb-3 p-3 bg-gray-50 rounded-md';
+            newRow.innerHTML = `
+                <input type="number" placeholder="סכום" class="payment-amount px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" oninput="updatePaymentsBalance()">
+                <input type="date" class="payment-date px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <input type="text" placeholder="הערות" class="payment-note px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+            `;
+            container.appendChild(newRow);
+        }
+
+        function updatePaymentsBalance() {
+            let totalPaid = 0;
+            document.querySelectorAll('.payment-amount').forEach(input => {
+                totalPaid += parseFloat(input.value) || 0;
+            });
+            
+            let totalCost = 0;
+            if (document.getElementById('all-included').checked) {
+                totalCost = parseFloat(document.getElementById('total-cost').value) || 0;
+            } else {
+                document.querySelectorAll('.service-price').forEach(input => {
+                    totalCost += parseFloat(input.value) || 0;
+                });
+            }
+            
+            const balance = totalCost - totalPaid;
+            
+            document.getElementById('total-paid').textContent = totalPaid.toLocaleString();
+            document.getElementById('balance-amount').textContent = balance.toLocaleString();
+            
+            const balanceDisplay = document.getElementById('balance-display');
+            balanceDisplay.className = balance > 0 ? 'text-lg font-semibold text-red-600' : 'text-lg font-semibold text-green-600';
+        }
+
+        // Suppliers functions
+        function renderSuppliers() {
+            const container = document.getElementById('suppliers-container');
+            container.innerHTML = suppliers.map(supplier => {
+                const supplierEvents = events.filter(e => e.services?.some(s => s.supplier === supplier.name));
+                return `
+                    <div class="bg-gray-50 rounded-lg p-4">
+                        <h3 class="font-semibold text-gray-800 mb-2">${supplier.name}</h3>
+                        <div class="space-y-1 text-sm text-gray-600">
+                            <div class="flex items-center gap-2">
+                                <i class="fas fa-phone"></i>
+                                ${supplier.phone || 'לא צוין'}
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <i class="fas fa-envelope"></i>
+                                ${supplier.email || 'לא צוין'}
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <i class="fas fa-calendar"></i>
+                                ${supplierEvents.length} אירועים
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function createNewSupplier() {
+            const name = prompt('שם הספק:');
+            if (!name) return;
+            
+            const phone = prompt('מספר טלפון:') || '';
+            const email = prompt('מייל:') || '';
+            
+            const newSupplier = {
+                id: Date.now().toString(),
+                name,
+                phone,
+                email
+            };
+            
+            suppliers.push(newSupplier);
+            saveData();
+            renderSuppliers();
+        }
+
+        // Clients functions
+        function renderClients() {
+            const clientsData = events.reduce((acc, event) => {
+                event.parents?.forEach(parent => {
+                    if (parent.name) {
+                        const existing = acc.find(c => c.name === parent.name && c.phone === parent.phone);
+                        if (existing) {
+                            existing.events.push(event);
+                        } else {
+                            acc.push({
+                                name: parent.name,
+                                phone: parent.phone,
+                                email: parent.email,
+                                events: [event]
+                            });
+                        }
+                    }
+                });
+                return acc;
+            }, []);
+            
+            const container = document.getElementById('clients-container');
+            container.innerHTML = clientsData.map(client => `
+                <div class="bg-gray-50 rounded-lg p-4">
+                    <h3 class="font-semibold text-gray-800 mb-2">${client.name}</h3>
+                    <div class="space-y-1 text-sm text-gray-600">
+                        <div class="flex items-center gap-2">
+                            <i class="fas fa-phone"></i>
+                            ${client.phone || 'לא צוין'}
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <i class="fas fa-envelope"></i>
+                            ${client.email || 'לא צוין'}
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <i class="fas fa-calendar"></i>
+                            ${client.events.length} אירועים
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // Export functions
+        function exportEvents() {
+            const exportData = events.map(event => {
+                const totalCost = event.allIncluded ? event.totalCost : 
+                    (event.services?.reduce((sum, s) => sum + (s.price || 0), 0) || 0);
+                return {
+                    'שם החתן': `${event.groomName} ${event.groomLastName}`,
+                    'תאריך': event.date,
+                    'סטטוס': eventStatuses[event.status],
+                    'מספר משתתפים': event.participants,
+                    'עלות כוללת': totalCost
+                };
+            });
+            exportToCSV(exportData, 'אירועים.csv');
+        }
+
+        function exportClients() {
+            const clientsData = events.reduce((acc, event) => {
+                event.parents?.forEach(parent => {
+                    if (parent.name) {
+                        const existing = acc.find(c => c.name === parent.name && c.phone === parent.phone);
+                        if (existing) {
+                            existing.events.push(event);
+                        } else {
+                            acc.push({
+                                name: parent.name,
+                                phone: parent.phone,
+                                email: parent.email,
+                                events: [event]
+                            });
+                        }
+                    }
+                });
+                return acc;
+            }, []);
+            
+            const exportData = clientsData.map(client => ({
+                'שם': client.name,
+                'טלפון': client.phone,
+                'מייל': client.email,
+                'מספר אירועים': client.events.length
+            }));
+            exportToCSV(exportData, 'לקוחות.csv');
+        }
+
+        function exportToCSV(data, filename) {
+            const headers = Object.keys(data[0] || {});
+            const csvContent = [
+                headers.join(','),
+                ...data.map(row => 
+                    headers.map(header => {
+                        const value = row[header] || '';
+                        return typeof value === 'string' ? `"${value}"` : value;
+                    }).join(',')
+                )
+            ].join('\n');
+            
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = filename;
+            link.click();
+        }
+
+        // Event listeners
+        document.getElementById('search-events').addEventListener('input', renderEvents);
+        document.getElementById('status-filter').addEventListener('change', renderEvents);
+        document.getElementById('all-included').addEventListener('change', toggleTotalCost);
+
+        // Initialize app
+        document.addEventListener('DOMContentLoaded', function() {
+            loadData();
+            setCurrentView('dashboard');
+        });
+    </script>
+</body>
+</html>
