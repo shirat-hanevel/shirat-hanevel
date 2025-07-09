@@ -8,6 +8,7 @@
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/hdate@0.7.4/dist/hdate.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -393,7 +394,20 @@
         </div>
     </div>
 
-   כ
+    <script>
+        // Global variables
+        let currentView = 'dashboard';
+        let currentDate = new Date();
+        let events = [];
+        let suppliers = [];
+        let clients = [];
+        let currentEvent = null;
+        let currentEventId = null;
+
+        // Supabase configuration
+        const supabaseUrl = 'https://hstsknresadmypumqrrc.supabase.co';
+        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhzdHNrbnJlc2FkbXlwdW1xcnJjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTE5OTQ0NTQsImV4cCI6MjA2NzU3MDQ1NH0.dlfmEIKpWJ9loc-LcuOeJESLlSgNIktbVF6Lm9DoRcQ';
+        const supabase = supabase.createClient(supabaseUrl, supabaseKey);
 
         // Default services
         const defaultServices = [
@@ -416,18 +430,38 @@
             'תשרי', 'חשון', 'כסלו', 'טבת', 'שבט', 'אדר', 'ניסן', 'אייר', 'סיון', 'תמוז', 'אב', 'אלול'
         ];
 
-        // Load data from localStorage
-        function loadData() {
-            const savedEvents = localStorage.getItem('barMitzvahEvents');
-            const savedSuppliers = localStorage.getItem('barMitzvahSuppliers');
-            const savedClients = localStorage.getItem('barMitzvahClients');
-            
-            if (savedEvents) events = JSON.parse(savedEvents);
-            if (savedSuppliers) suppliers = JSON.parse(savedSuppliers);
-            if (savedClients) clients = JSON.parse(savedClients);
+        // Load data from Supabase
+        async function loadData() {
+            try {
+                // Load events
+                const { data: eventsData, error: eventsError } = await supabase
+                    .from('events')
+                    .select('*');
+                if (!eventsError) events = eventsData || [];
+
+                // Load suppliers
+                const { data: suppliersData, error: suppliersError } = await supabase
+                    .from('suppliers')
+                    .select('*');
+                if (!suppliersError) suppliers = suppliersData || [];
+
+                // Load clients
+                const { data: clientsData, error: clientsError } = await supabase
+                    .from('clients')
+                    .select('*');
+                if (!clientsError) clients = clientsData || [];
+                
+                // Save to localStorage as backup
+                localStorage.setItem('barMitzvahEvents', JSON.stringify(events));
+                localStorage.setItem('barMitzvahSuppliers', JSON.stringify(suppliers));
+                localStorage.setItem('barMitzvahClients', JSON.stringify(clients));
+            } catch (error) {
+                console.error('שגיאה בטעינת נתונים:', error);
+                alert('אירעה שגיאה בטעינת הנתונים. נסה שוב מאוחר יותר.');
+            }
         }
 
-        // Save data to localStorage
+        // Save data to localStorage as backup
         function saveData() {
             localStorage.setItem('barMitzvahEvents', JSON.stringify(events));
             localStorage.setItem('barMitzvahSuppliers', JSON.stringify(suppliers));
@@ -698,7 +732,7 @@
             currentEventId = null;
         }
 
-        function saveEvent() {
+        async function saveEvent() {
             // Collect data from form
             currentEvent.groomName = document.getElementById('groom-name').value;
             currentEvent.groomLastName = document.getElementById('groom-lastname').value;
@@ -754,29 +788,59 @@
                 }
             });
             
-            // Save to events array
-            if (currentEventId) {
-                const index = events.findIndex(e => e.id === currentEventId);
-                events[index] = currentEvent;
-            } else {
-                events.push(currentEvent);
-            }
-            
-            saveData();
-            closeEventModal();
-            
-            if (currentView === 'events') renderEvents();
-            else if (currentView === 'dashboard') renderDashboard();
-        }
-
-        function deleteEvent() {
-            if (currentEventId && confirm('האם אתה בטוח שברצונך למחוק את האירוע?')) {
-                events = events.filter(e => e.id !== currentEventId);
-                saveData();
+            try {
+                if (currentEventId) {
+                    // Update existing event in Supabase
+                    const { error } = await supabase
+                        .from('events')
+                        .update(currentEvent)
+                        .eq('id', currentEventId);
+                } else {
+                    // Create new event in Supabase
+                    const { data, error } = await supabase
+                        .from('events')
+                        .insert([currentEvent]);
+                    if (data) currentEvent.id = data[0].id;
+                }
+                
+                // Update local events array
+                if (currentEventId) {
+                    const index = events.findIndex(e => e.id === currentEventId);
+                    events[index] = currentEvent;
+                } else {
+                    events.push(currentEvent);
+                }
+                
+                saveData(); // Save to localStorage as backup
                 closeEventModal();
                 
                 if (currentView === 'events') renderEvents();
                 else if (currentView === 'dashboard') renderDashboard();
+            } catch (error) {
+                console.error('שגיאה בשמירת האירוע:', error);
+                alert('אירעה שגיאה בשמירת האירוע. נסה שוב.');
+            }
+        }
+
+        async function deleteEvent() {
+            if (confirm('האם אתה בטוח שברצונך למחוק את האירוע?')) {
+                try {
+                    await supabase
+                        .from('events')
+                        .delete()
+                        .eq('id', currentEventId);
+                    
+                    // Update local events array
+                    events = events.filter(e => e.id !== currentEventId);
+                    saveData(); // Save to localStorage as backup
+                    closeEventModal();
+                    
+                    if (currentView === 'events') renderEvents();
+                    else if (currentView === 'dashboard') renderDashboard();
+                } catch (error) {
+                    console.error('שגיאה במחיקת האירוע:', error);
+                    alert('אירעה שגיאה במחיקת האירוע. נסה שוב.');
+                }
             }
         }
 
@@ -969,7 +1033,7 @@
             }).join('');
         }
 
-        function createNewSupplier() {
+        async function createNewSupplier() {
             const name = prompt('שם הספק:');
             if (!name) return;
             
@@ -983,9 +1047,18 @@
                 email
             };
             
-            suppliers.push(newSupplier);
-            saveData();
-            renderSuppliers();
+            try {
+                await supabase
+                    .from('suppliers')
+                    .insert([newSupplier]);
+                
+                suppliers.push(newSupplier);
+                saveData(); // Save to localStorage as backup
+                renderSuppliers();
+            } catch (error) {
+                console.error('שגיאה ביצירת ספק:', error);
+                alert('אירעה שגיאה ביצירת ספק. נסה שוב.');
+            }
         }
 
         // Clients functions
@@ -1032,7 +1105,7 @@
         }
 
         // Export functions
-        function exportEvents() {
+        async function exportEvents() {
             const exportData = events.map(event => {
                 const totalCost = event.allIncluded ? event.totalCost : 
                     (event.services?.reduce((sum, s) => sum + (s.price || 0), 0) || 0);
@@ -1047,7 +1120,7 @@
             exportToCSV(exportData, 'אירועים.csv');
         }
 
-        function exportClients() {
+        async function exportClients() {
             const clientsData = events.reduce((acc, event) => {
                 event.parents?.forEach(parent => {
                     if (parent.name) {
@@ -1101,8 +1174,8 @@
         document.getElementById('all-included').addEventListener('change', toggleTotalCost);
 
         // Initialize app
-        document.addEventListener('DOMContentLoaded', function() {
-            loadData();
+        document.addEventListener('DOMContentLoaded', async function() {
+            await loadData();
             setCurrentView('dashboard');
         });
     </script>
