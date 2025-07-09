@@ -9,6 +9,7 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/hdate@0.7.4/dist/hdate.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+	<script src="config.js"></script>
     <style>
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -106,8 +107,7 @@
         <!-- Main Content -->
         <main class="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
             <div class="px-4 py-6 sm:px-0">
-                
-                <!-- Dashboard View -->
+			                <!-- Dashboard View -->
                 <div id="dashboard-view" class="view space-y-6">
                     <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
                         <div class="glass rounded-lg shadow-lg p-6">
@@ -208,8 +208,7 @@
                         </div>
                     </div>
                 </div>
-
-                <!-- Suppliers View -->
+				                <!-- Suppliers View -->
                 <div id="suppliers-view" class="view hidden">
                     <div class="glass rounded-lg shadow-lg p-6">
                         <div class="flex justify-between items-center mb-6">
@@ -287,8 +286,7 @@
                                 <input type="time" id="start-time" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
                             </div>
                         </div>
-                        
-                        <div>
+						                        <div>
                             <label class="block text-sm font-medium text-gray-700 mb-1">קונספט האירוע</label>
                             <input type="text" id="event-concept" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
                         </div>
@@ -329,7 +327,7 @@
                                 <h3 class="text-lg font-semibold text-gray-800">שירותים</h3>
                                 <div class="flex items-center gap-3">
                                     <label class="flex items-center gap-2">
-                                        <input type="checkbox" id="all-included" class="rounded">
+                                        <input type="checkbox" id="all-included" class="rounded" onchange="toggleTotalCost()">
                                         <span class="text-sm font-medium">הכל כלול</span>
                                     </label>
                                     <button onclick="addService()" class="bg-blue-500 text-white px-3 py-1 rounded-md hover:bg-blue-600 flex items-center gap-1">
@@ -341,12 +339,12 @@
                             
                             <div id="total-cost-container" class="mb-4 hidden">
                                 <label class="block text-sm font-medium text-gray-700 mb-1">מחיר חבילה כוללת</label>
-                                <input type="number" id="total-cost" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                <input type="number" id="total-cost" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" onchange="updatePaymentsBalance()">
                             </div>
                             
                             <div id="services-container"></div>
                             
-                            <div id="services-total" class="bg-blue-50 p-3 rounded-md hidden">
+                            <div id="services-total" class="bg-blue-50 p-3 rounded-md">
                                 <p class="text-lg font-semibold text-blue-800">
                                     סך הכל שירותים: ₪<span id="services-total-amount">0</span>
                                 </p>
@@ -376,8 +374,7 @@
                             </div>
                         </div>
                     </div>
-                    
-                    <div class="flex justify-end gap-3 mt-6 pt-6 border-t">
+					                    <div class="flex justify-end gap-3 mt-6 pt-6 border-t">
                         <button onclick="closeEventModal()" class="px-4 py-2 text-gray-600 hover:text-gray-800">
                             ביטול
                         </button>
@@ -404,11 +401,6 @@
         let currentEvent = null;
         let currentEventId = null;
 
-        // Supabase configuration
-        const supabaseUrl = 'https://hstsknresadmypumqrrc.supabase.co';
-        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhzdHNrbnJlc2FkbXlwdW1xcnJjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTE5OTQ0NTQsImV4cCI6MjA2NzU3MDQ1NH0.dlfmEIKpWJ9loc-LcuOeJESLlSgNIktbVF6Lm9DoRcQ';
-        const supabase = supabase.createClient(supabaseUrl, supabaseKey);
-
         // Default services
         const defaultServices = [
             'נגן גיטרה', 'נשפן', 'מתופף', 'כנר', 'נגן בוזוקי', 'צלם', 'ארוחת בוקר',
@@ -430,70 +422,74 @@
             'תשרי', 'חשון', 'כסלו', 'טבת', 'שבט', 'אדר', 'ניסן', 'אייר', 'סיון', 'תמוז', 'אב', 'אלול'
         ];
 
-        // Load data from Supabase
+        // Initialize Supabase client
+        const supabase = supabaseClient.createClient(
+            'https://hstsknresadmypumqrrc.supabase.co',
+            'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhzdHNrbnJlc2FkbXlwdW1xcnJjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTE5OTQ0NTQsImV4cCI6MjA2NzU3MDQ1NH0.dlfmEIKpWJ9loc-LcuOeJESLlSgNIktbVF6Lm9DoRcQ'
+        );
+
+        // Initialize the app when the document is loaded
+        document.addEventListener('DOMContentLoaded', async () => {
+            try {
+                await loadData();
+                setCurrentView('dashboard');
+            } catch (error) {
+                console.error('Error initializing app:', error);
+                alert('אירעה שגיאה באתחול האפליקציה');
+            }
+        });
+		        // Load data from Supabase
         async function loadData() {
             try {
                 // Load events
                 const { data: eventsData, error: eventsError } = await supabase
                     .from('events')
                     .select('*');
-                if (!eventsError) events = eventsData || [];
+                
+                if (eventsError) throw eventsError;
+                events = eventsData || [];
 
                 // Load suppliers
                 const { data: suppliersData, error: suppliersError } = await supabase
                     .from('suppliers')
                     .select('*');
-                if (!suppliersError) suppliers = suppliersData || [];
+                
+                if (suppliersError) throw suppliersError;
+                suppliers = suppliersData || [];
 
                 // Load clients
                 const { data: clientsData, error: clientsError } = await supabase
                     .from('clients')
                     .select('*');
-                if (!clientsError) clients = clientsData || [];
                 
+                if (clientsError) throw clientsError;
+                clients = clientsData || [];
+
                 // Save to localStorage as backup
                 localStorage.setItem('barMitzvahEvents', JSON.stringify(events));
                 localStorage.setItem('barMitzvahSuppliers', JSON.stringify(suppliers));
                 localStorage.setItem('barMitzvahClients', JSON.stringify(clients));
+
+                // Update UI based on current view
+                if (currentView === 'dashboard') renderDashboard();
+                else if (currentView === 'events') renderEvents();
+                else if (currentView === 'suppliers') renderSuppliers();
+                else if (currentView === 'clients') renderClients();
+
             } catch (error) {
-                console.error('שגיאה בטעינת נתונים:', error);
-                alert('אירעה שגיאה בטעינת הנתונים. נסה שוב מאוחר יותר.');
+                console.error('Error loading data:', error);
+                
+                // Try to load from localStorage if Supabase fails
+                const localEvents = localStorage.getItem('barMitzvahEvents');
+                const localSuppliers = localStorage.getItem('barMitzvahSuppliers');
+                const localClients = localStorage.getItem('barMitzvahClients');
+                
+                if (localEvents) events = JSON.parse(localEvents);
+                if (localSuppliers) suppliers = JSON.parse(localSuppliers);
+                if (localClients) clients = JSON.parse(localClients);
+                
+                alert('אירעה שגיאה בטעינת הנתונים מהשרת. נטען מידע מקומי במידה וקיים.');
             }
-        }
-
-        // Save data to localStorage as backup
-        function saveData() {
-            localStorage.setItem('barMitzvahEvents', JSON.stringify(events));
-            localStorage.setItem('barMitzvahSuppliers', JSON.stringify(suppliers));
-            localStorage.setItem('barMitzvahClients', JSON.stringify(clients));
-        }
-
-        // Hebrew date functions
-        function getHebrewDate(date) {
-            try {
-                const hd = new Hebcal.HDate(date);
-                return hd.toString('h');
-            } catch (e) {
-                // Fallback if library doesn't work
-                const jewishYear = date.getFullYear() + 3760;
-                const monthIndex = (date.getMonth() + 6) % 12;
-                const day = date.getDate();
-                return `${day} ${hebrewMonths[monthIndex]} ${jewishYear}`;
-            }
-        }
-
-        function getJewishHolidays(year, month) {
-            const holidays = {
-                9: { 1: 'ראש השנה', 10: 'יום כיפור', 15: 'סוכות', 21: 'הושענא רבה', 22: 'שמחת תורה' },
-                11: { 25: 'חנוכה' },
-                12: { 15: 'ט"ו בשבט' },
-                2: { 14: 'פורים' },
-                3: { 15: 'פסח' },
-                4: { 18: 'ל"ג בעומר' },
-                5: { 6: 'שבועות' },
-                6: { 9: 'תשעה באב' }
-            };
-            return holidays[month + 1] || {};
         }
 
         // Navigation functions
@@ -515,7 +511,7 @@
             // Show current view
             document.getElementById(`${view}-view`).classList.remove('hidden');
             
-            // Render content
+            // Render content based on view
             if (view === 'dashboard') renderDashboard();
             else if (view === 'events') renderEvents();
             else if (view === 'suppliers') renderSuppliers();
@@ -524,85 +520,105 @@
 
         // Dashboard functions
         function renderDashboard() {
-            const totalEvents = events.length;
-            const upcomingEvents = events.filter(e => new Date(e.date) > new Date() && e.status !== 'past').length;
-            const quotesOnly = events.filter(e => e.status === 'quote').length;
-            const totalRevenue = events.reduce((sum, event) => {
-                if (event.allIncluded) return sum + (event.totalCost || 0);
-                return sum + (event.services?.reduce((s, service) => s + (service.price || 0), 0) || 0);
-            }, 0);
-            
-            document.getElementById('total-events').textContent = totalEvents;
-            document.getElementById('upcoming-events').textContent = upcomingEvents;
-            document.getElementById('quotes-only').textContent = quotesOnly;
-            document.getElementById('total-revenue').textContent = `₪${totalRevenue.toLocaleString()}`;
-            
-            renderCalendar();
+            try {
+                const totalEvents = events.length;
+                const upcomingEvents = events.filter(e => new Date(e.date) > new Date() && e.status !== 'past').length;
+                const quotesOnly = events.filter(e => e.status === 'quote').length;
+                const totalRevenue = events.reduce((sum, event) => {
+                    if (event.allIncluded) return sum + (event.totalCost || 0);
+                    return sum + (event.services?.reduce((s, service) => s + (service.price || 0), 0) || 0);
+                }, 0);
+                
+                document.getElementById('total-events').textContent = totalEvents;
+                document.getElementById('upcoming-events').textContent = upcomingEvents;
+                document.getElementById('quotes-only').textContent = quotesOnly;
+                document.getElementById('total-revenue').textContent = `₪${totalRevenue.toLocaleString()}`;
+                
+                renderCalendar();
+            } catch (error) {
+                console.error('Error rendering dashboard:', error);
+                alert('אירעה שגיאה בטעינת הדשבורד');
+            }
+        }
+		        // Calendar functions
+        function renderCalendar() {
+            try {
+                const container = document.getElementById('calendar-container');
+                if (!container) {
+                    console.error('Calendar container not found');
+                    return;
+                }
+
+                const year = currentDate.getFullYear();
+                const month = currentDate.getMonth();
+                const today = new Date();
+                
+                const firstDay = new Date(year, month, 1);
+                const lastDay = new Date(year, month + 1, 0);
+                const startDate = new Date(firstDay);
+                startDate.setDate(startDate.getDate() - firstDay.getDay());
+                
+                const days = [];
+                const current = new Date(startDate);
+                
+                while (current <= lastDay || current.getDay() !== 0) {
+                    days.push(new Date(current));
+                    current.setDate(current.getDate() + 1);
+                }
+                
+                const holidays = getJewishHolidays(year, month);
+                
+                let calendarHTML = `
+                    <div class="flex justify-between items-center mb-6">
+                        <button onclick="navigateMonth(-1)" class="p-2 hover:bg-blue-100 rounded-full">
+                            <i class="fas fa-chevron-right text-blue-600"></i>
+                        </button>
+                        <h2 class="text-2xl font-bold text-gray-800">
+                            ${currentDate.toLocaleDateString('he-IL', { month: 'long', year: 'numeric' })}
+                        </h2>
+                        <button onclick="navigateMonth(1)" class="p-2 hover:bg-blue-100 rounded-full">
+                            <i class="fas fa-chevron-left text-blue-600"></i>
+                        </button>
+                    </div>
+                    
+                    <div class="grid grid-cols-7 gap-1 mb-2">
+                        ${['א', 'ב', 'ג', 'ד', 'ה', 'ו', 'ש'].map(day => 
+                            `<div class="text-center font-semibold text-gray-600 p-2">${day}</div>`
+                        ).join('')}
+                    </div>
+                    
+                    <div class="calendar-grid">`;
+                
+                days.forEach(day => {
+                    const dayEvents = getEventsForDate(day);
+                    const isToday = day.toDateString() === today.toDateString();
+                    const isCurrentMonth = day.getMonth() === month;
+                    const holiday = holidays[day.getDate()];
+                    
+                    calendarHTML += `
+                        <div class="calendar-day ${isToday ? 'today' : ''} ${!isCurrentMonth ? 'other-month' : ''}">
+                            <div class="text-sm font-medium text-gray-800">${day.getDate()}</div>
+                            <div class="text-xs text-gray-600 mb-1">${getHebrewDate(day)}</div>
+                            ${holiday ? `<div class="text-xs text-purple-600 font-medium mb-1">${holiday}</div>` : ''}
+                            ${dayEvents.map(event => `
+                                <div class="event-item status-${event.status}" onclick="openEventModal('${event.id}')">
+                                    בר מצווה של ${event.groomName} ${event.groomLastName || ''}
+                                </div>
+                            `).join('')}
+                        </div>`;
+                });
+                
+                calendarHTML += `</div>`;
+                container.innerHTML = calendarHTML;
+            } catch (error) {
+                console.error('Error rendering calendar:', error);
+                alert('אירעה שגיאה בהצגת לוח השנה');
+            }
         }
 
-        // Calendar functions
-        function renderCalendar() {
-            const container = document.getElementById('calendar-container');
-            const year = currentDate.getFullYear();
-            const month = currentDate.getMonth();
-            const today = new Date();
-            
-            const firstDay = new Date(year, month, 1);
-            const lastDay = new Date(year, month + 1, 0);
-            const startDate = new Date(firstDay);
-            startDate.setDate(startDate.getDate() - firstDay.getDay());
-            
-            const days = [];
-            const current = new Date(startDate);
-            
-            while (current <= lastDay || current.getDay() !== 0) {
-                days.push(new Date(current));
-                current.setDate(current.getDate() + 1);
-            }
-            
-            const holidays = getJewishHolidays(year, month);
-            
-            container.innerHTML = `
-                <div class="flex justify-between items-center mb-6">
-                    <button onclick="navigateMonth(-1)" class="p-2 hover:bg-blue-100 rounded-full">
-                        <i class="fas fa-chevron-right text-blue-600"></i>
-                    </button>
-                    <h2 class="text-2xl font-bold text-gray-800">
-                        ${currentDate.toLocaleDateString('he-IL', { month: 'long', year: 'numeric' })}
-                    </h2>
-                    <button onclick="navigateMonth(1)" class="p-2 hover:bg-blue-100 rounded-full">
-                        <i class="fas fa-chevron-left text-blue-600"></i>
-                    </button>
-                </div>
-                
-                <div class="grid grid-cols-7 gap-1 mb-2">
-                    ${['א', 'ב', 'ג', 'ד', 'ה', 'ו', 'ש'].map(day => 
-                        `<div class="text-center font-semibold text-gray-600 p-2">${day}</div>`
-                    ).join('')}
-                </div>
-                
-                <div class="calendar-grid">
-                    ${days.map(day => {
-                        const dayEvents = getEventsForDate(day);
-                        const isToday = day.toDateString() === today.toDateString();
-                        const isCurrentMonth = day.getMonth() === month;
-                        const holiday = holidays[day.getDate()];
-                        
-                        return `
-                            <div class="calendar-day ${isToday ? 'today' : ''} ${!isCurrentMonth ? 'other-month' : ''}">
-                                <div class="text-sm font-medium text-gray-800">${day.getDate()}</div>
-                                <div class="text-xs text-gray-600 mb-1">${getHebrewDate(day).split(' ')[0]}</div>
-                                ${holiday ? `<div class="text-xs text-purple-600 font-medium mb-1">${holiday}</div>` : ''}
-                                ${dayEvents.map(event => `
-                                    <div class="event-item status-${event.status}" onclick="openEventModal('${event.id}')">
-                                        בר מצווה של ${event.groomName} ${event.groomLastName}
-                                    </div>
-                                `).join('')}
-                            </div>
-                        `;
-                    }).join('')}
-                </div>
-            `;
+        function getEventsForDate(date) {
+            const dateStr = date.toISOString().split('T')[0];
+            return events.filter(event => event.date === dateStr);
         }
 
         function navigateMonth(direction) {
@@ -612,118 +628,234 @@
             renderCalendar();
         }
 
-        function getEventsForDate(date) {
-            const dateStr = date.toISOString().split('T')[0];
-            return events.filter(event => event.date === dateStr);
-        }
-
-        // Event functions
-        function renderEvents() {
-            const searchTerm = document.getElementById('search-events').value.toLowerCase();
-            const statusFilter = document.getElementById('status-filter').value;
-            
-            const filteredEvents = events.filter(event => {
-                const matchesSearch = searchTerm === '' || 
-                    `${event.groomName} ${event.groomLastName}`.toLowerCase().includes(searchTerm) ||
-                    event.date.includes(searchTerm);
-                
-                const matchesFilter = statusFilter === '' || event.status === statusFilter;
-                
-                return matchesSearch && matchesFilter;
-            });
-            
-            const tbody = document.getElementById('events-table-body');
-            tbody.innerHTML = filteredEvents.map(event => {
-                const totalCost = event.allIncluded ? event.totalCost : 
-                    (event.services?.reduce((sum, s) => sum + (s.price || 0), 0) || 0);
-                const totalPaid = event.payments?.reduce((sum, p) => sum + (p.amount || 0), 0) || 0;
-                const balance = totalCost - totalPaid;
-                
-                return `
-                    <tr class="border-b border-gray-100 hover:bg-gray-50">
-                        <td class="p-3">${event.groomName} ${event.groomLastName}</td>
-                        <td class="p-3">${new Date(event.date).toLocaleDateString('he-IL')}</td>
-                        <td class="p-3">
-                            <span class="px-2 py-1 rounded-full text-xs font-medium status-${event.status}">
-                                ${eventStatuses[event.status]}
-                            </span>
-                        </td>
-                        <td class="p-3">${event.participants || ''}</td>
-                        <td class="p-3">₪${totalCost.toLocaleString()}</td>
-                        <td class="p-3">
-                            <span class="${balance > 0 ? 'text-red-600' : 'text-green-600'}">
-                                ₪${balance.toLocaleString()}
-                            </span>
-                        </td>
-                        <td class="p-3">
-                            <button onclick="openEventModal('${event.id}')" class="text-blue-600 hover:text-blue-800">
-                                <i class="fas fa-edit"></i>
-                            </button>
-                        </td>
-                    </tr>
-                `;
-            }).join('');
-        }
-
-        function sortEventsByDate() {
-            events.sort((a, b) => new Date(a.date) - new Date(b.date));
-            renderEvents();
-        }
-
-        function createNewEvent() {
-            currentEvent = {
-                id: Date.now().toString(),
-                groomName: '',
-                groomLastName: '',
-                parents: [{ name: '', phone: '', email: '' }],
-                date: '',
-                participants: '',
-                concept: '',
-                startTime: '',
-                schedule: [{ time: '', description: '' }],
-                description: '',
-                services: [],
-                allIncluded: false,
-                totalCost: 0,
-                payments: [],
-                status: 'quote'
-            };
-            currentEventId = null;
-            openEventModal();
-        }
-
-        function openEventModal(eventId = null) {
-            if (eventId) {
-                currentEvent = events.find(e => e.id === eventId);
-                currentEventId = eventId;
-                document.getElementById('modal-title').textContent = 'עריכת אירוע';
-                document.getElementById('delete-btn').style.display = 'block';
-            } else {
-                document.getElementById('modal-title').textContent = 'אירוע חדש';
-                document.getElementById('delete-btn').style.display = 'none';
+        function getHebrewDate(date) {
+            try {
+                const hd = new Hebcal.HDate(date);
+                return hd.toString('h');
+            } catch (e) {
+                console.error('Error getting Hebrew date:', e);
+                // Fallback if Hebcal library fails
+                const jewishYear = date.getFullYear() + 3760;
+                const monthIndex = (date.getMonth() + 6) % 12;
+                const day = date.getDate();
+                return `${day} ${hebrewMonths[monthIndex]} ${jewishYear}`;
             }
-            
-            populateEventModal();
-            document.getElementById('event-modal').classList.remove('hidden');
+        }
+		        // Jewish holidays
+        function getJewishHolidays(year, month) {
+            try {
+                const holidays = {};
+                const startDate = new Date(year, month, 1);
+                const endDate = new Date(year, month + 1, 0);
+                
+                for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
+                    const hDate = new Hebcal.HDate(d);
+                    const events = Hebcal.HDate.getHolidays(hDate);
+                    if (events.length > 0) {
+                        holidays[d.getDate()] = events[0].getDesc('h');
+                    }
+                }
+                
+                return holidays;
+            } catch (e) {
+                console.error('Error getting Jewish holidays:', e);
+                return {};
+            }
         }
 
-        function populateEventModal() {
-            document.getElementById('groom-name').value = currentEvent.groomName || '';
-            document.getElementById('groom-lastname').value = currentEvent.groomLastName || '';
-            document.getElementById('event-date').value = currentEvent.date || '';
-            document.getElementById('event-status').value = currentEvent.status || 'quote';
-            document.getElementById('participants').value = currentEvent.participants || '';
-            document.getElementById('start-time').value = currentEvent.startTime || '';
-            document.getElementById('event-concept').value = currentEvent.concept || '';
-            document.getElementById('event-description').value = currentEvent.description || '';
-            document.getElementById('all-included').checked = currentEvent.allIncluded || false;
-            document.getElementById('total-cost').value = currentEvent.totalCost || 0;
+        // Event management functions
+        async function createNewEvent() {
+            currentEvent = null;
+            currentEventId = null;
             
-            toggleTotalCost();
-            renderParents();
-            renderSchedule();
-            renderServices();
-            renderPayments();
+            // Reset modal fields
+            document.getElementById('groom-name').value = '';
+            document.getElementById('groom-lastname').value = '';
+            document.getElementById('event-date').value = '';
+            document.getElementById('event-status').value = 'quote';
+            document.getElementById('participants').value = '';
+            document.getElementById('start-time').value = '';
+            document.getElementById('event-concept').value = '';
+            document.getElementById('event-description').value = '';
+            document.getElementById('all-included').checked = false;
+            document.getElementById('total-cost').value = '';
+            
+            // Clear containers
+            document.getElementById('parents-container').innerHTML = '';
+            document.getElementById('schedule-container').innerHTML = '';
+            document.getElementById('services-container').innerHTML = '';
+            document.getElementById('payments-container').innerHTML = '';
+            
+            // Add initial rows
+            addParent();
+            addScheduleItem();
+            addService();
+            addPayment();
+            
+            // Show modal
+            document.getElementById('event-modal').classList.remove('hidden');
+            document.getElementById('delete-btn').style.display = 'none';
+            document.getElementById('modal-title').textContent = 'אירוע חדש';
+        }
+
+        async function openEventModal(eventId) {
+            try {
+                const event = events.find(e => e.id === eventId);
+                if (!event) throw new Error('Event not found');
+                
+                currentEvent = event;
+                currentEventId = eventId;
+                
+                // Fill basic info
+                document.getElementById('groom-name').value = event.groomName || '';
+                document.getElementById('groom-lastname').value = event.groomLastName || '';
+                document.getElementById('event-date').value = event.date || '';
+                document.getElementById('event-status').value = event.status || 'quote';
+                document.getElementById('participants').value = event.participants || '';
+                document.getElementById('start-time').value = event.startTime || '';
+                document.getElementById('event-concept').value = event.concept || '';
+                document.getElementById('event-description').value = event.description || '';
+                document.getElementById('all-included').checked = event.allIncluded || false;
+                document.getElementById('total-cost').value = event.totalCost || '';
+                
+                // Toggle total cost display
+                toggleTotalCost();
+                
+                // Clear containers
+                document.getElementById('parents-container').innerHTML = '';
+                document.getElementById('schedule-container').innerHTML = '';
+                document.getElementById('services-container').innerHTML = '';
+                document.getElementById('payments-container').innerHTML = '';
+                
+                // Fill parents
+                if (event.parents && event.parents.length > 0) {
+                    event.parents.forEach(parent => addParent(parent));
+                } else {
+                    addParent();
+                }
+                
+                // Fill schedule
+                if (event.schedule && event.schedule.length > 0) {
+                    event.schedule.forEach(item => addScheduleItem(item));
+                } else {
+                    addScheduleItem();
+                }
+				                // Fill services
+                if (event.services && event.services.length > 0) {
+                    event.services.forEach(service => addService(service));
+                } else {
+                    addService();
+                }
+                
+                // Fill payments
+                if (event.payments && event.payments.length > 0) {
+                    event.payments.forEach(payment => addPayment(payment));
+                } else {
+                    addPayment();
+                }
+                
+                // Update totals
+                updateServiceTotal();
+                updatePaymentsBalance();
+                
+                // Show modal
+                document.getElementById('event-modal').classList.remove('hidden');
+                document.getElementById('delete-btn').style.display = 'block';
+                document.getElementById('modal-title').textContent = 'עריכת אירוע';
+            } catch (error) {
+                console.error('Error opening event modal:', error);
+                alert('אירעה שגיאה בפתיחת פרטי האירוע');
+            }
+        }
+
+        async function saveEvent() {
+            try {
+                const eventData = {
+                    groomName: document.getElementById('groom-name').value,
+                    groomLastName: document.getElementById('groom-lastname').value,
+                    date: document.getElementById('event-date').value,
+                    status: document.getElementById('event-status').value,
+                    participants: parseInt(document.getElementById('participants').value) || 0,
+                    startTime: document.getElementById('start-time').value,
+                    concept: document.getElementById('event-concept').value,
+                    description: document.getElementById('event-description').value,
+                    allIncluded: document.getElementById('all-included').checked,
+                    totalCost: parseFloat(document.getElementById('total-cost').value) || 0,
+                    parents: getParentsData(),
+                    schedule: getScheduleData(),
+                    services: getServicesData(),
+                    payments: getPaymentsData(),
+                    lastModified: new Date().toISOString(),
+                    modifiedBy: 'shirat-hanevel'
+                };
+
+                if (currentEventId) {
+                    // Update existing event
+                    const { error } = await supabase
+                        .from('events')
+                        .update(eventData)
+                        .eq('id', currentEventId);
+
+                    if (error) throw error;
+
+                    const eventIndex = events.findIndex(e => e.id === currentEventId);
+                    if (eventIndex !== -1) {
+                        events[eventIndex] = { ...events[eventIndex], ...eventData, id: currentEventId };
+                    }
+                } else {
+                    // Create new event
+                    const { data, error } = await supabase
+                        .from('events')
+                        .insert([{ ...eventData, createdAt: new Date().toISOString(), createdBy: 'shirat-hanevel' }])
+                        .select();
+
+                    if (error) throw error;
+                    if (data && data[0]) {
+                        events.push(data[0]);
+                    }
+                }
+
+                // Update localStorage
+                localStorage.setItem('barMitzvahEvents', JSON.stringify(events));
+
+                // Close modal and refresh view
+                closeEventModal();
+                if (currentView === 'dashboard') renderDashboard();
+                else if (currentView === 'events') renderEvents();
+
+            } catch (error) {
+                console.error('Error saving event:', error);
+                alert('אירעה שגיאה בשמירת האירוע');
+            }
+        }
+		        async function deleteEvent() {
+            if (!currentEventId) return;
+            
+            if (!confirm('האם אתה בטוח שברצונך למחוק את האירוע?')) return;
+            
+            try {
+                const { error } = await supabase
+                    .from('events')
+                    .delete()
+                    .eq('id', currentEventId);
+
+                if (error) throw error;
+
+                // Remove from local array
+                events = events.filter(e => e.id !== currentEventId);
+                
+                // Update localStorage
+                localStorage.setItem('barMitzvahEvents', JSON.stringify(events));
+
+                // Close modal and refresh view
+                closeEventModal();
+                if (currentView === 'dashboard') renderDashboard();
+                else if (currentView === 'events') renderEvents();
+
+            } catch (error) {
+                console.error('Error deleting event:', error);
+                alert('אירעה שגיאה במחיקת האירוע');
+            }
         }
 
         function closeEventModal() {
@@ -732,269 +864,232 @@
             currentEventId = null;
         }
 
-        async function saveEvent() {
-            // Collect data from form
-            currentEvent.groomName = document.getElementById('groom-name').value;
-            currentEvent.groomLastName = document.getElementById('groom-lastname').value;
-            currentEvent.date = document.getElementById('event-date').value;
-            currentEvent.status = document.getElementById('event-status').value;
-            currentEvent.participants = document.getElementById('participants').value;
-            currentEvent.startTime = document.getElementById('start-time').value;
-            currentEvent.concept = document.getElementById('event-concept').value;
-            currentEvent.description = document.getElementById('event-description').value;
-            currentEvent.allIncluded = document.getElementById('all-included').checked;
-            currentEvent.totalCost = parseFloat(document.getElementById('total-cost').value) || 0;
-            
-            // Collect parents
-            currentEvent.parents = [];
-            document.querySelectorAll('#parents-container .parent-row').forEach(row => {
-                const name = row.querySelector('.parent-name').value;
-                const phone = row.querySelector('.parent-phone').value;
-                const email = row.querySelector('.parent-email').value;
-                if (name || phone || email) {
-                    currentEvent.parents.push({ name, phone, email });
+        // Helper functions for event data
+        function getParentsData() {
+            const parents = [];
+            document.querySelectorAll('.parent-row').forEach(row => {
+                const name = row.querySelector('[name="parent-name"]').value;
+                const phone = row.querySelector('[name="parent-phone"]').value;
+                const relation = row.querySelector('[name="parent-relation"]').value;
+                if (name || phone || relation) {
+                    parents.push({ name, phone, relation });
                 }
             });
-            
-            // Collect schedule
-            currentEvent.schedule = [];
-            document.querySelectorAll('#schedule-container .schedule-row').forEach(row => {
-                const time = row.querySelector('.schedule-time').value;
-                const description = row.querySelector('.schedule-description').value;
-                if (time || description) {
-                    currentEvent.schedule.push({ time, description });
+            return parents;
+        }
+
+        function getScheduleData() {
+            const schedule = [];
+            document.querySelectorAll('.schedule-row').forEach(row => {
+                const time = row.querySelector('[name="schedule-time"]').value;
+                const activity = row.querySelector('[name="schedule-activity"]').value;
+                if (time || activity) {
+                    schedule.push({ time, activity });
                 }
             });
-            
-            // Collect services
-            currentEvent.services = [];
-            document.querySelectorAll('#services-container .service-row').forEach(row => {
-                const name = row.querySelector('.service-name').value;
-                const price = parseFloat(row.querySelector('.service-price')?.value) || 0;
-                const supplier = row.querySelector('.service-supplier').value;
-                if (name) {
-                    currentEvent.services.push({ name, price, supplier });
+            return schedule;
+        }
+
+        function getServicesData() {
+            const services = [];
+            document.querySelectorAll('.service-row').forEach(row => {
+                const name = row.querySelector('[name="service-name"]').value;
+                const supplier = row.querySelector('[name="service-supplier"]').value;
+                const price = parseFloat(row.querySelector('[name="service-price"]').value) || 0;
+                const status = row.querySelector('[name="service-status"]').value;
+                if (name || supplier || price || status) {
+                    services.push({ name, supplier, price, status });
                 }
             });
-            
-            // Collect payments
-            currentEvent.payments = [];
-            document.querySelectorAll('#payments-container .payment-row').forEach(row => {
-                const amount = parseFloat(row.querySelector('.payment-amount').value) || 0;
-                const date = row.querySelector('.payment-date').value;
-                const note = row.querySelector('.payment-note').value;
-                if (amount || date || note) {
-                    currentEvent.payments.push({ amount, date, note });
+            return services;
+        }
+
+        function getPaymentsData() {
+            const payments = [];
+            document.querySelectorAll('.payment-row').forEach(row => {
+                const date = row.querySelector('[name="payment-date"]').value;
+                const amount = parseFloat(row.querySelector('[name="payment-amount"]').value) || 0;
+                const method = row.querySelector('[name="payment-method"]').value;
+                const notes = row.querySelector('[name="payment-notes"]').value;
+                if (date || amount || method || notes) {
+                    payments.push({ 
+                        date, 
+                        amount, 
+                        method, 
+                        notes,
+                        recordedAt: "2025-07-09 11:38:03",
+                        recordedBy: "shirat-hanevel"
+                    });
                 }
             });
+            return payments;
+        }
+		        // Dynamic form functions
+        function addParent(data = null) {
+            const container = document.getElementById('parents-container');
+            const row = document.createElement('div');
+            row.className = 'parent-row flex gap-3 mb-3';
+            row.innerHTML = `
+                <input type="text" name="parent-name" placeholder="שם מלא" value="${data?.name || ''}"
+                    class="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <input type="tel" name="parent-phone" placeholder="טלפון" value="${data?.phone || ''}"
+                    class="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <select name="parent-relation" 
+                    class="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <option value="">בחר קרבה</option>
+                    <option value="father" ${data?.relation === 'father' ? 'selected' : ''}>אב</option>
+                    <option value="mother" ${data?.relation === 'mother' ? 'selected' : ''}>אם</option>
+                    <option value="other" ${data?.relation === 'other' ? 'selected' : ''}>אחר</option>
+                </select>
+                <button onclick="removeRow(this)" class="text-red-500 hover:text-red-700">
+                    <i class="fas fa-times"></i>
+                </button>
+            `;
+            container.appendChild(row);
+        }
+
+        function addScheduleItem(data = null) {
+            const container = document.getElementById('schedule-container');
+            const row = document.createElement('div');
+            row.className = 'schedule-row flex gap-3 mb-3';
+            row.innerHTML = `
+                <input type="time" name="schedule-time" value="${data?.time || ''}"
+                    class="w-32 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <input type="text" name="schedule-activity" placeholder="פעילות" value="${data?.activity || ''}"
+                    class="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <button onclick="removeRow(this)" class="text-red-500 hover:text-red-700">
+                    <i class="fas fa-times"></i>
+                </button>
+            `;
+            container.appendChild(row);
+        }
+
+        function addService(data = null) {
+            const container = document.getElementById('services-container');
+            const row = document.createElement('div');
+            row.className = 'service-row flex gap-3 mb-3';
             
-            try {
-                if (currentEventId) {
-                    // Update existing event in Supabase
-                    const { error } = await supabase
-                        .from('events')
-                        .update(currentEvent)
-                        .eq('id', currentEventId);
-                } else {
-                    // Create new event in Supabase
-                    const { data, error } = await supabase
-                        .from('events')
-                        .insert([currentEvent]);
-                    if (data) currentEvent.id = data[0].id;
-                }
-                
-                // Update local events array
-                if (currentEventId) {
-                    const index = events.findIndex(e => e.id === currentEventId);
-                    events[index] = currentEvent;
-                } else {
-                    events.push(currentEvent);
-                }
-                
-                saveData(); // Save to localStorage as backup
-                closeEventModal();
-                
-                if (currentView === 'events') renderEvents();
-                else if (currentView === 'dashboard') renderDashboard();
-            } catch (error) {
-                console.error('שגיאה בשמירת האירוע:', error);
-                alert('אירעה שגיאה בשמירת האירוע. נסה שוב.');
+            const serviceList = document.createElement('datalist');
+            serviceList.id = `service-list-${Date.now()}`;
+            defaultServices.forEach(service => {
+                const option = document.createElement('option');
+                option.value = service;
+                serviceList.appendChild(option);
+            });
+            
+            row.innerHTML = `
+                ${serviceList.outerHTML}
+                <input type="text" name="service-name" placeholder="שם השירות" value="${data?.name || ''}"
+                    list="${serviceList.id}"
+                    class="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <input type="text" name="service-supplier" placeholder="ספק" value="${data?.supplier || ''}"
+                    class="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <input type="number" name="service-price" placeholder="מחיר" value="${data?.price || ''}"
+                    class="w-32 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    onchange="updateServiceTotal()">
+                <select name="service-status" 
+                    class="w-32 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <option value="pending" ${data?.status === 'pending' ? 'selected' : ''}>ממתין</option>
+                    <option value="confirmed" ${data?.status === 'confirmed' ? 'selected' : ''}>מאושר</option>
+                    <option value="cancelled" ${data?.status === 'cancelled' ? 'selected' : ''}>מבוטל</option>
+                </select>
+                <button onclick="removeRow(this)" class="text-red-500 hover:text-red-700">
+                    <i class="fas fa-times"></i>
+                </button>
+            `;
+            container.appendChild(row);
+            updateServiceTotal();
+        }
+		        function addPayment(data = null) {
+            const container = document.getElementById('payments-container');
+            const row = document.createElement('div');
+            row.className = 'payment-row flex gap-3 mb-3';
+            row.innerHTML = `
+                <input type="date" name="payment-date" value="${data?.date || ''}"
+                    class="w-40 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <input type="number" name="payment-amount" placeholder="סכום" value="${data?.amount || ''}"
+                    class="w-32 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    onchange="updatePaymentsBalance()">
+                <select name="payment-method" 
+                    class="w-40 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <option value="">בחר אמצעי תשלום</option>
+                    <option value="cash" ${data?.method === 'cash' ? 'selected' : ''}>מזומן</option>
+                    <option value="credit" ${data?.method === 'credit' ? 'selected' : ''}>אשראי</option>
+                    <option value="check" ${data?.method === 'check' ? 'selected' : ''}>צ'ק</option>
+                    <option value="transfer" ${data?.method === 'transfer' ? 'selected' : ''}>העברה בנקאית</option>
+                </select>
+                <input type="text" name="payment-notes" placeholder="הערות" value="${data?.notes || ''}"
+                    class="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <button onclick="removeRow(this)" class="text-red-500 hover:text-red-700">
+                    <i class="fas fa-times"></i>
+                </button>
+            `;
+            container.appendChild(row);
+            updatePaymentsBalance();
+            
+            // Add metadata for new payments
+            if (!data) {
+                const metadata = {
+                    recordedAt: "2025-07-09 11:39:52",
+                    recordedBy: "shirat-hanevel"
+                };
+                row.dataset.metadata = JSON.stringify(metadata);
             }
         }
 
-        async function deleteEvent() {
-            if (confirm('האם אתה בטוח שברצונך למחוק את האירוע?')) {
-                try {
-                    await supabase
-                        .from('events')
-                        .delete()
-                        .eq('id', currentEventId);
-                    
-                    // Update local events array
-                    events = events.filter(e => e.id !== currentEventId);
-                    saveData(); // Save to localStorage as backup
-                    closeEventModal();
-                    
-                    if (currentView === 'events') renderEvents();
-                    else if (currentView === 'dashboard') renderDashboard();
-                } catch (error) {
-                    console.error('שגיאה במחיקת האירוע:', error);
-                    alert('אירעה שגיאה במחיקת האירוע. נסה שוב.');
-                }
+        function removeRow(button) {
+            const row = button.closest('.parent-row, .schedule-row, .service-row, .payment-row');
+            if (row) {
+                row.remove();
+                updateServiceTotal();
+                updatePaymentsBalance();
             }
-        }
-
-        // Parents functions
-        function renderParents() {
-            const container = document.getElementById('parents-container');
-            container.innerHTML = (currentEvent.parents || []).map((parent, index) => `
-                <div class="parent-row grid grid-cols-1 md:grid-cols-3 gap-4 mb-3 p-3 bg-gray-50 rounded-md">
-                    <input type="text" placeholder="שם" class="parent-name px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" value="${parent.name || ''}">
-                    <input type="tel" placeholder="טלפון" class="parent-phone px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" value="${parent.phone || ''}">
-                    <input type="email" placeholder="מייל" class="parent-email px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" value="${parent.email || ''}">
-                </div>
-            `).join('');
-        }
-
-        function addParent() {
-            const container = document.getElementById('parents-container');
-            const newRow = document.createElement('div');
-            newRow.className = 'parent-row grid grid-cols-1 md:grid-cols-3 gap-4 mb-3 p-3 bg-gray-50 rounded-md';
-            newRow.innerHTML = `
-                <input type="text" placeholder="שם" class="parent-name px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
-                <input type="tel" placeholder="טלפון" class="parent-phone px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
-                <input type="email" placeholder="מייל" class="parent-email px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
-            `;
-            container.appendChild(newRow);
-        }
-
-        // Schedule functions
-        function renderSchedule() {
-            const container = document.getElementById('schedule-container');
-            container.innerHTML = (currentEvent.schedule || []).map((item, index) => `
-                <div class="schedule-row grid grid-cols-1 md:grid-cols-2 gap-4 mb-3 p-3 bg-gray-50 rounded-md">
-                    <input type="time" class="schedule-time px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" value="${item.time || ''}">
-                    <input type="text" placeholder="תיאור" class="schedule-description px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" value="${item.description || ''}">
-                </div>
-            `).join('');
-        }
-
-        function addScheduleItem() {
-            const container = document.getElementById('schedule-container');
-            const newRow = document.createElement('div');
-            newRow.className = 'schedule-row grid grid-cols-1 md:grid-cols-2 gap-4 mb-3 p-3 bg-gray-50 rounded-md';
-            newRow.innerHTML = `
-                <input type="time" class="schedule-time px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
-                <input type="text" placeholder="תיאור" class="schedule-description px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
-            `;
-            container.appendChild(newRow);
-        }
-
-        // Services functions
-        function renderServices() {
-            const container = document.getElementById('services-container');
-            container.innerHTML = (currentEvent.services || []).map((service, index) => `
-                <div class="service-row grid grid-cols-1 md:grid-cols-3 gap-4 mb-3 p-3 bg-gray-50 rounded-md">
-                    <select class="service-name px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
-                        <option value="">בחר שירות</option>
-                        ${defaultServices.map(s => `<option value="${s}" ${service.name === s ? 'selected' : ''}>${s}</option>`).join('')}
-                        <option value="custom" ${service.name === 'custom' ? 'selected' : ''}>שירות מותאם אישית</option>
-                    </select>
-                    ${currentEvent.allIncluded ? '' : `<input type="number" placeholder="מחיר" class="service-price px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" value="${service.price || ''}" oninput="updateServicesTotal()">`}
-                    <select class="service-supplier px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
-                        <option value="">בחר ספק</option>
-                        ${suppliers.map(s => `<option value="${s.name}" ${service.supplier === s.name ? 'selected' : ''}>${s.name}</option>`).join('')}
-                    </select>
-                </div>
-            `).join('');
-            
-            updateServicesTotal();
-        }
-
-        function addService() {
-            const container = document.getElementById('services-container');
-            const newRow = document.createElement('div');
-            newRow.className = 'service-row grid grid-cols-1 md:grid-cols-3 gap-4 mb-3 p-3 bg-gray-50 rounded-md';
-            newRow.innerHTML = `
-                <select class="service-name px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
-                    <option value="">בחר שירות</option>
-                    ${defaultServices.map(s => `<option value="${s}">${s}</option>`).join('')}
-                    <option value="custom">שירות מותאם אישית</option>
-                </select>
-                ${currentEvent.allIncluded ? '' : `<input type="number" placeholder="מחיר" class="service-price px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" oninput="updateServicesTotal()">`}
-                <select class="service-supplier px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
-                    <option value="">בחר ספק</option>
-                    ${suppliers.map(s => `<option value="${s.name}">${s.name}</option>`).join('')}
-                </select>
-            `;
-            container.appendChild(newRow);
         }
 
         function toggleTotalCost() {
-            const allIncluded = document.getElementById('all-included').checked;
+            const isAllIncluded = document.getElementById('all-included').checked;
             const totalCostContainer = document.getElementById('total-cost-container');
-            const servicesTotal = document.getElementById('services-total');
+            const servicesContainer = document.getElementById('services-container');
             
-            if (allIncluded) {
+            if (isAllIncluded) {
                 totalCostContainer.classList.remove('hidden');
-                servicesTotal.classList.add('hidden');
+                servicesContainer.classList.add('hidden');
             } else {
                 totalCostContainer.classList.add('hidden');
-                servicesTotal.classList.remove('hidden');
+                servicesContainer.classList.remove('hidden');
             }
             
-            // Re-render services to show/hide price inputs
-            renderServices();
+            updatePaymentsBalance();
         }
 
-        function updateServicesTotal() {
-            let total = 0;
-            document.querySelectorAll('.service-price').forEach(input => {
-                total += parseFloat(input.value) || 0;
-            });
+        function updateServiceTotal() {
+            const total = Array.from(document.querySelectorAll('.service-row'))
+                .reduce((sum, row) => {
+                    const price = parseFloat(row.querySelector('[name="service-price"]').value) || 0;
+                    return sum + price;
+                }, 0);
+            
             document.getElementById('services-total-amount').textContent = total.toLocaleString();
             updatePaymentsBalance();
         }
-
-        // Payments functions
-        function renderPayments() {
-            const container = document.getElementById('payments-container');
-            container.innerHTML = (currentEvent.payments || []).map((payment, index) => `
-                <div class="payment-row grid grid-cols-1 md:grid-cols-3 gap-4 mb-3 p-3 bg-gray-50 rounded-md">
-                    <input type="number" placeholder="סכום" class="payment-amount px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" value="${payment.amount || ''}" oninput="updatePaymentsBalance()">
-                    <input type="date" class="payment-date px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" value="${payment.date || ''}">
-                    <input type="text" placeholder="הערות" class="payment-note px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" value="${payment.note || ''}">
-                </div>
-            `).join('');
-            
-            updatePaymentsBalance();
-        }
-
-        function addPayment() {
-            const container = document.getElementById('payments-container');
-            const newRow = document.createElement('div');
-            newRow.className = 'payment-row grid grid-cols-1 md:grid-cols-3 gap-4 mb-3 p-3 bg-gray-50 rounded-md';
-            newRow.innerHTML = `
-                <input type="number" placeholder="סכום" class="payment-amount px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" oninput="updatePaymentsBalance()">
-                <input type="date" class="payment-date px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
-                <input type="text" placeholder="הערות" class="payment-note px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
-            `;
-            container.appendChild(newRow);
-        }
-
-        function updatePaymentsBalance() {
-            let totalPaid = 0;
-            document.querySelectorAll('.payment-amount').forEach(input => {
-                totalPaid += parseFloat(input.value) || 0;
-            });
+		        function updatePaymentsBalance() {
+            const totalPaid = Array.from(document.querySelectorAll('.payment-row'))
+                .reduce((sum, row) => {
+                    const amount = parseFloat(row.querySelector('[name="payment-amount"]').value) || 0;
+                    return sum + amount;
+                }, 0);
             
             let totalCost = 0;
-            if (document.getElementById('all-included').checked) {
+            const isAllIncluded = document.getElementById('all-included').checked;
+            
+            if (isAllIncluded) {
                 totalCost = parseFloat(document.getElementById('total-cost').value) || 0;
             } else {
-                document.querySelectorAll('.service-price').forEach(input => {
-                    totalCost += parseFloat(input.value) || 0;
-                });
+                totalCost = Array.from(document.querySelectorAll('.service-row'))
+                    .reduce((sum, row) => {
+                        const price = parseFloat(row.querySelector('[name="service-price"]').value) || 0;
+                        return sum + price;
+                    }, 0);
             }
             
             const balance = totalCost - totalPaid;
@@ -1003,180 +1098,744 @@
             document.getElementById('balance-amount').textContent = balance.toLocaleString();
             
             const balanceDisplay = document.getElementById('balance-display');
-            balanceDisplay.className = balance > 0 ? 'text-lg font-semibold text-red-600' : 'text-lg font-semibold text-green-600';
+            if (balance > 0) {
+                balanceDisplay.classList.remove('text-green-800');
+                balanceDisplay.classList.add('text-red-800');
+            } else {
+                balanceDisplay.classList.remove('text-red-800');
+                balanceDisplay.classList.add('text-green-800');
+            }
         }
 
-        // Suppliers functions
-        function renderSuppliers() {
-            const container = document.getElementById('suppliers-container');
-            container.innerHTML = suppliers.map(supplier => {
-                const supplierEvents = events.filter(e => e.services?.some(s => s.supplier === supplier.name));
-                return `
-                    <div class="bg-gray-50 rounded-lg p-4">
-                        <h3 class="font-semibold text-gray-800 mb-2">${supplier.name}</h3>
-                        <div class="space-y-1 text-sm text-gray-600">
-                            <div class="flex items-center gap-2">
-                                <i class="fas fa-phone"></i>
-                                ${supplier.phone || 'לא צוין'}
+        // Events list view functions
+        function renderEvents() {
+            const container = document.getElementById('events-container');
+            if (!container) return;
+            
+            const sortedEvents = [...events].sort((a, b) => new Date(b.date) - new Date(a.date));
+            
+            let eventsHTML = '';
+            sortedEvents.forEach(event => {
+                const eventDate = new Date(event.date);
+                const totalCost = event.allIncluded ? 
+                    event.totalCost : 
+                    (event.services?.reduce((sum, service) => sum + (service.price || 0), 0) || 0);
+                
+                const totalPaid = event.payments?.reduce((sum, payment) => sum + (payment.amount || 0), 0) || 0;
+                const balance = totalCost - totalPaid;
+                
+                eventsHTML += `
+                    <div class="bg-white rounded-lg shadow-md p-4 hover:shadow-lg transition-shadow cursor-pointer"
+                         onclick="openEventModal('${event.id}')">
+                        <div class="flex justify-between items-start mb-4">
+                            <div>
+                                <h3 class="text-xl font-semibold text-gray-800">
+                                    ${event.groomName} ${event.groomLastName || ''}
+                                </h3>
+                                <p class="text-gray-600">
+                                    ${eventDate.toLocaleDateString('he-IL', { 
+                                        year: 'numeric', 
+                                        month: 'long', 
+                                        day: 'numeric' 
+                                    })}
+                                </p>
                             </div>
-                            <div class="flex items-center gap-2">
-                                <i class="fas fa-envelope"></i>
-                                ${supplier.email || 'לא צוין'}
+                            <span class="status-badge status-${event.status}">
+                                ${eventStatuses[event.status]}
+                            </span>
+                        </div>
+                        
+                        <div class="grid grid-cols-2 gap-4 text-sm">
+                            <div>
+                                <p class="text-gray-600">מספר משתתפים:</p>
+                                <p class="font-medium">${event.participants || 'לא צוין'}</p>
                             </div>
-                            <div class="flex items-center gap-2">
-                                <i class="fas fa-calendar"></i>
-                                ${supplierEvents.length} אירועים
+                            <div>
+                                <p class="text-gray-600">שעת התחלה:</p>
+                                <p class="font-medium">${event.startTime || 'לא צוין'}</p>
+                            </div>
+                            <div>
+                                <p class="text-gray-600">סך הכל לתשלום:</p>
+                                <p class="font-medium">₪${totalCost.toLocaleString()}</p>
+                            </div>
+                            <div>
+                                <p class="text-gray-600">יתרה:</p>
+                                <p class="font-medium ${balance > 0 ? 'text-red-600' : 'text-green-600'}">
+                                    ₪${balance.toLocaleString()}
+                                </p>
                             </div>
                         </div>
                     </div>
                 `;
-            }).join('');
+            });
+            
+            container.innerHTML = eventsHTML;
         }
-
+		        // Suppliers management functions
         async function createNewSupplier() {
-            const name = prompt('שם הספק:');
-            if (!name) return;
-            
-            const phone = prompt('מספר טלפון:') || '';
-            const email = prompt('מייל:') || '';
-            
-            const newSupplier = {
-                id: Date.now().toString(),
-                name,
-                phone,
-                email
-            };
-            
             try {
-                await supabase
-                    .from('suppliers')
-                    .insert([newSupplier]);
+                const name = prompt('שם הספק:');
+                if (!name) return;
                 
-                suppliers.push(newSupplier);
-                saveData(); // Save to localStorage as backup
-                renderSuppliers();
+                const phone = prompt('טלפון:');
+                const email = prompt('אימייל:');
+                const services = prompt('שירותים (הפרד בפסיקים):');
+                
+                const supplierData = {
+                    name,
+                    phone: phone || '',
+                    email: email || '',
+                    services: services ? services.split(',').map(s => s.trim()) : [],
+                    createdAt: '2025-07-09 11:41:48',
+                    createdBy: 'shirat-hanevel',
+                    lastModified: '2025-07-09 11:41:48',
+                    modifiedBy: 'shirat-hanevel'
+                };
+
+                const { data, error } = await supabase
+                    .from('suppliers')
+                    .insert([supplierData])
+                    .select();
+
+                if (error) throw error;
+                if (data && data[0]) {
+                    suppliers.push(data[0]);
+                    localStorage.setItem('barMitzvahSuppliers', JSON.stringify(suppliers));
+                    renderSuppliers();
+                }
             } catch (error) {
-                console.error('שגיאה ביצירת ספק:', error);
-                alert('אירעה שגיאה ביצירת ספק. נסה שוב.');
+                console.error('Error creating supplier:', error);
+                alert('אירעה שגיאה ביצירת הספק');
             }
         }
 
-        // Clients functions
-        function renderClients() {
-            const clientsData = events.reduce((acc, event) => {
-                event.parents?.forEach(parent => {
-                    if (parent.name) {
-                        const existing = acc.find(c => c.name === parent.name && c.phone === parent.phone);
-                        if (existing) {
-                            existing.events.push(event);
-                        } else {
-                            acc.push({
-                                name: parent.name,
-                                phone: parent.phone,
-                                email: parent.email,
-                                events: [event]
-                            });
-                        }
-                    }
-                });
-                return acc;
-            }, []);
+        async function editSupplier(supplierId) {
+            try {
+                const supplier = suppliers.find(s => s.id === supplierId);
+                if (!supplier) throw new Error('Supplier not found');
+                
+                const name = prompt('שם הספק:', supplier.name);
+                if (!name) return;
+                
+                const phone = prompt('טלפון:', supplier.phone);
+                const email = prompt('אימייל:', supplier.email);
+                const services = prompt('שירותים (הפרד בפסיקים):', supplier.services?.join(', '));
+                
+                const supplierData = {
+                    name,
+                    phone: phone || '',
+                    email: email || '',
+                    services: services ? services.split(',').map(s => s.trim()) : [],
+                    lastModified: '2025-07-09 11:41:48',
+                    modifiedBy: 'shirat-hanevel'
+                };
+
+                const { error } = await supabase
+                    .from('suppliers')
+                    .update(supplierData)
+                    .eq('id', supplierId);
+
+                if (error) throw error;
+
+                const supplierIndex = suppliers.findIndex(s => s.id === supplierId);
+                if (supplierIndex !== -1) {
+                    suppliers[supplierIndex] = { ...suppliers[supplierIndex], ...supplierData };
+                    localStorage.setItem('barMitzvahSuppliers', JSON.stringify(suppliers));
+                    renderSuppliers();
+                }
+            } catch (error) {
+                console.error('Error editing supplier:', error);
+                alert('אירעה שגיאה בעריכת הספק');
+            }
+        }
+		        async function deleteSupplier(supplierId) {
+            if (!confirm('האם אתה בטוח שברצונך למחוק את הספק?')) return;
             
-            const container = document.getElementById('clients-container');
-            container.innerHTML = clientsData.map(client => `
-                <div class="bg-gray-50 rounded-lg p-4">
-                    <h3 class="font-semibold text-gray-800 mb-2">${client.name}</h3>
-                    <div class="space-y-1 text-sm text-gray-600">
-                        <div class="flex items-center gap-2">
-                            <i class="fas fa-phone"></i>
-                            ${client.phone || 'לא צוין'}
+            try {
+                const { error } = await supabase
+                    .from('suppliers')
+                    .delete()
+                    .eq('id', supplierId);
+
+                if (error) throw error;
+
+                suppliers = suppliers.filter(s => s.id !== supplierId);
+                localStorage.setItem('barMitzvahSuppliers', JSON.stringify(suppliers));
+                renderSuppliers();
+            } catch (error) {
+                console.error('Error deleting supplier:', error);
+                alert('אירעה שגיאה במחיקת הספק');
+            }
+        }
+
+        function renderSuppliers() {
+            const container = document.getElementById('suppliers-container');
+            if (!container) return;
+            
+            const sortedSuppliers = [...suppliers].sort((a, b) => a.name.localeCompare(b.name));
+            
+            let suppliersHTML = '';
+            sortedSuppliers.forEach(supplier => {
+                suppliersHTML += `
+                    <div class="bg-white rounded-lg shadow-md p-4 hover:shadow-lg transition-shadow">
+                        <div class="flex justify-between items-start mb-4">
+                            <h3 class="text-xl font-semibold text-gray-800">${supplier.name}</h3>
+                            <div class="flex gap-2">
+                                <button onclick="editSupplier('${supplier.id}')" 
+                                        class="text-blue-600 hover:text-blue-800">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                <button onclick="deleteSupplier('${supplier.id}')" 
+                                        class="text-red-600 hover:text-red-800">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
                         </div>
-                        <div class="flex items-center gap-2">
-                            <i class="fas fa-envelope"></i>
-                            ${client.email || 'לא צוין'}
-                        </div>
-                        <div class="flex items-center gap-2">
-                            <i class="fas fa-calendar"></i>
-                            ${client.events.length} אירועים
+                        
+                        <div class="grid grid-cols-1 gap-2 text-sm">
+                            ${supplier.phone ? `
+                                <div class="flex items-center gap-2">
+                                    <i class="fas fa-phone text-gray-400"></i>
+                                    <a href="tel:${supplier.phone}" class="text-blue-600 hover:text-blue-800">
+                                        ${supplier.phone}
+                                    </a>
+                                </div>
+                            ` : ''}
+                            
+                            ${supplier.email ? `
+                                <div class="flex items-center gap-2">
+                                    <i class="fas fa-envelope text-gray-400"></i>
+                                    <a href="mailto:${supplier.email}" class="text-blue-600 hover:text-blue-800">
+                                        ${supplier.email}
+                                    </a>
+                                </div>
+                            ` : ''}
+                            
+                            ${supplier.services && supplier.services.length > 0 ? `
+                                <div class="flex items-start gap-2">
+                                    <i class="fas fa-list-ul text-gray-400 mt-1"></i>
+                                    <div class="flex flex-wrap gap-2">
+                                        ${supplier.services.map(service => `
+                                            <span class="bg-gray-100 text-gray-800 px-2 py-1 rounded-full">
+                                                ${service}
+                                            </span>
+                                        `).join('')}
+                                    </div>
+                                </div>
+                            ` : ''}
                         </div>
                     </div>
-                </div>
-            `).join('');
-        }
-
-        // Export functions
-        async function exportEvents() {
-            const exportData = events.map(event => {
-                const totalCost = event.allIncluded ? event.totalCost : 
-                    (event.services?.reduce((sum, s) => sum + (s.price || 0), 0) || 0);
-                return {
-                    'שם החתן': `${event.groomName} ${event.groomLastName}`,
-                    'תאריך': event.date,
-                    'סטטוס': eventStatuses[event.status],
-                    'מספר משתתפים': event.participants,
-                    'עלות כוללת': totalCost
-                };
+                `;
             });
-            exportToCSV(exportData, 'אירועים.csv');
+            
+            container.innerHTML = suppliersHTML;
+        }
+		        // Clients management functions
+        async function createNewClient() {
+            try {
+                const name = prompt('שם הלקוח:');
+                if (!name) return;
+                
+                const phone = prompt('טלפון:');
+                const email = prompt('אימייל:');
+                const address = prompt('כתובת:');
+                const notes = prompt('הערות:');
+                
+                const clientData = {
+                    name,
+                    phone: phone || '',
+                    email: email || '',
+                    address: address || '',
+                    notes: notes || '',
+                    createdAt: '2025-07-09 11:42:50',
+                    createdBy: 'shirat-hanevel',
+                    lastModified: '2025-07-09 11:42:50',
+                    modifiedBy: 'shirat-hanevel'
+                };
+
+                const { data, error } = await supabase
+                    .from('clients')
+                    .insert([clientData])
+                    .select();
+
+                if (error) throw error;
+                if (data && data[0]) {
+                    clients.push(data[0]);
+                    localStorage.setItem('barMitzvahClients', JSON.stringify(clients));
+                    renderClients();
+                }
+            } catch (error) {
+                console.error('Error creating client:', error);
+                alert('אירעה שגיאה ביצירת הלקוח');
+            }
         }
 
-        async function exportClients() {
-            const clientsData = events.reduce((acc, event) => {
-                event.parents?.forEach(parent => {
-                    if (parent.name) {
-                        const existing = acc.find(c => c.name === parent.name && c.phone === parent.phone);
-                        if (existing) {
-                            existing.events.push(event);
-                        } else {
-                            acc.push({
-                                name: parent.name,
-                                phone: parent.phone,
-                                email: parent.email,
-                                events: [event]
-                            });
-                        }
-                    }
-                });
+        async function editClient(clientId) {
+            try {
+                const client = clients.find(c => c.id === clientId);
+                if (!client) throw new Error('Client not found');
+                
+                const name = prompt('שם הלקוח:', client.name);
+                if (!name) return;
+                
+                const phone = prompt('טלפון:', client.phone);
+                const email = prompt('אימייל:', client.email);
+                const address = prompt('כתובת:', client.address);
+                const notes = prompt('הערות:', client.notes);
+                
+                const clientData = {
+                    name,
+                    phone: phone || '',
+                    email: email || '',
+                    address: address || '',
+                    notes: notes || '',
+                    lastModified: '2025-07-09 11:42:50',
+                    modifiedBy: 'shirat-hanevel'
+                };
+
+                const { error } = await supabase
+                    .from('clients')
+                    .update(clientData)
+                    .eq('id', clientId);
+
+                if (error) throw error;
+
+                const clientIndex = clients.findIndex(c => c.id === clientId);
+                if (clientIndex !== -1) {
+                    clients[clientIndex] = { ...clients[clientIndex], ...clientData };
+                    localStorage.setItem('barMitzvahClients', JSON.stringify(clients));
+                    renderClients();
+                }
+            } catch (error) {
+                console.error('Error editing client:', error);
+                alert('אירעה שגיאה בעריכת הלקוח');
+            }
+        }
+		        async function deleteClient(clientId) {
+            if (!confirm('האם אתה בטוח שברצונך למחוק את הלקוח?')) return;
+            
+            try {
+                const { error } = await supabase
+                    .from('clients')
+                    .delete()
+                    .eq('id', clientId);
+
+                if (error) throw error;
+
+                clients = clients.filter(c => c.id !== clientId);
+                localStorage.setItem('barMitzvahClients', JSON.stringify(clients));
+                renderClients();
+            } catch (error) {
+                console.error('Error deleting client:', error);
+                alert('אירעה שגיאה במחיקת הלקוח');
+            }
+        }
+
+        function renderClients() {
+            const container = document.getElementById('clients-container');
+            if (!container) return;
+            
+            const sortedClients = [...clients].sort((a, b) => a.name.localeCompare(b.name));
+            
+            let clientsHTML = '';
+            sortedClients.forEach(client => {
+                // Get all events associated with this client
+                const clientEvents = events.filter(event => 
+                    event.parents?.some(parent => 
+                        parent.name === client.name || 
+                        parent.phone === client.phone || 
+                        (client.email && parent.email === client.email)
+                    )
+                );
+                
+                clientsHTML += `
+                    <div class="bg-white rounded-lg shadow-md p-4 hover:shadow-lg transition-shadow">
+                        <div class="flex justify-between items-start mb-4">
+                            <h3 class="text-xl font-semibold text-gray-800">${client.name}</h3>
+                            <div class="flex gap-2">
+                                <button onclick="editClient('${client.id}')" 
+                                        class="text-blue-600 hover:text-blue-800">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                <button onclick="deleteClient('${client.id}')" 
+                                        class="text-red-600 hover:text-red-800">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div class="grid grid-cols-1 gap-2 text-sm">
+                            ${client.phone ? `
+                                <div class="flex items-center gap-2">
+                                    <i class="fas fa-phone text-gray-400"></i>
+                                    <a href="tel:${client.phone}" class="text-blue-600 hover:text-blue-800">
+                                        ${client.phone}
+                                    </a>
+                                </div>
+                            ` : ''}
+                            
+                            ${client.email ? `
+                                <div class="flex items-center gap-2">
+                                    <i class="fas fa-envelope text-gray-400"></i>
+                                    <a href="mailto:${client.email}" class="text-blue-600 hover:text-blue-800">
+                                        ${client.email}
+                                    </a>
+                                </div>
+                            ` : ''}
+                            
+                            ${client.address ? `
+                                <div class="flex items-center gap-2">
+                                    <i class="fas fa-map-marker-alt text-gray-400"></i>
+                                    <span class="text-gray-600">${client.address}</span>
+                                </div>
+                            ` : ''}
+                            
+                            ${client.notes ? `
+                                <div class="flex items-start gap-2">
+                                    <i class="fas fa-sticky-note text-gray-400 mt-1"></i>
+                                    <span class="text-gray-600">${client.notes}</span>
+                                </div>
+                            ` : ''}
+                        </div>
+						                        ${clientEvents.length > 0 ? `
+                            <div class="mt-4">
+                                <h4 class="text-lg font-semibold text-gray-700 mb-2">אירועים קשורים:</h4>
+                                <div class="space-y-2">
+                                    ${clientEvents.map(event => `
+                                        <div class="flex justify-between items-center p-2 bg-gray-50 rounded">
+                                            <div>
+                                                <span class="font-medium">${event.groomName} ${event.groomLastName || ''}</span>
+                                                <span class="text-gray-500 text-sm">
+                                                    - ${new Date(event.date).toLocaleDateString('he-IL')}
+                                                </span>
+                                            </div>
+                                            <button onclick="openEventModal('${event.id}')" 
+                                                    class="text-blue-600 hover:text-blue-800">
+                                                <i class="fas fa-external-link-alt"></i>
+                                            </button>
+                                        </div>
+                                    `).join('')}
+                                </div>
+                            </div>
+                        ` : ''}
+                    </div>
+                `;
+            });
+            
+            container.innerHTML = clientsHTML;
+        }
+
+        // Dashboard functions
+        function renderDashboard() {
+            renderUpcomingEvents();
+            renderEventStats();
+            renderFinancialStats();
+            renderActivityLog();
+        }
+
+        function renderUpcomingEvents() {
+            const container = document.getElementById('upcoming-events');
+            if (!container) return;
+            
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            
+            const upcomingEvents = events
+                .filter(event => new Date(event.date) >= today)
+                .sort((a, b) => new Date(a.date) - new Date(b.date))
+                .slice(0, 5);
+            
+            let html = '<div class="space-y-4">';
+            
+            upcomingEvents.forEach(event => {
+                const eventDate = new Date(event.date);
+                const daysUntil = Math.ceil((eventDate - today) / (1000 * 60 * 60 * 24));
+                
+                html += `
+                    <div class="bg-white p-4 rounded-lg shadow hover:shadow-md transition-shadow cursor-pointer"
+                         onclick="openEventModal('${event.id}')">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <h3 class="font-semibold text-lg">
+                                    ${event.groomName} ${event.groomLastName || ''}
+                                </h3>
+                                <p class="text-gray-600">
+                                    ${eventDate.toLocaleDateString('he-IL', { 
+                                        year: 'numeric', 
+                                        month: 'long', 
+                                        day: 'numeric' 
+                                    })}
+                                </p>
+                            </div>
+                            <span class="text-sm font-medium ${
+                                daysUntil <= 7 ? 'text-red-600' : 
+                                daysUntil <= 30 ? 'text-yellow-600' : 
+                                'text-green-600'
+                            }">
+                                ${daysUntil === 0 ? 'היום!' : 
+                                  daysUntil === 1 ? 'מחר' :
+                                  `בעוד ${daysUntil} ימים`}
+                            </span>
+                        </div>
+                    </div>
+                `;
+            });
+			            if (upcomingEvents.length === 0) {
+                html += `
+                    <div class="text-center text-gray-500 py-4">
+                        <p>אין אירועים קרובים</p>
+                    </div>
+                `;
+            }
+            
+            html += '</div>';
+            container.innerHTML = html;
+        }
+
+        function renderEventStats() {
+            const container = document.getElementById('event-stats');
+            if (!container) return;
+            
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            
+            const stats = {
+                total: events.length,
+                upcoming: events.filter(e => new Date(e.date) >= today).length,
+                thisMonth: events.filter(e => {
+                    const eventDate = new Date(e.date);
+                    return eventDate.getMonth() === today.getMonth() &&
+                           eventDate.getFullYear() === today.getFullYear();
+                }).length,
+                thisYear: events.filter(e => {
+                    const eventDate = new Date(e.date);
+                    return eventDate.getFullYear() === today.getFullYear();
+                }).length
+            };
+            
+            container.innerHTML = `
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div class="bg-white p-4 rounded-lg shadow text-center">
+                        <p class="text-gray-600 text-sm mb-1">סה"כ אירועים</p>
+                        <p class="text-2xl font-bold text-blue-600">${stats.total}</p>
+                    </div>
+                    <div class="bg-white p-4 rounded-lg shadow text-center">
+                        <p class="text-gray-600 text-sm mb-1">אירועים קרובים</p>
+                        <p class="text-2xl font-bold text-green-600">${stats.upcoming}</p>
+                    </div>
+                    <div class="bg-white p-4 rounded-lg shadow text-center">
+                        <p class="text-gray-600 text-sm mb-1">החודש</p>
+                        <p class="text-2xl font-bold text-yellow-600">${stats.thisMonth}</p>
+                    </div>
+                    <div class="bg-white p-4 rounded-lg shadow text-center">
+                        <p class="text-gray-600 text-sm mb-1">השנה</p>
+                        <p class="text-2xl font-bold text-purple-600">${stats.thisYear}</p>
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderFinancialStats() {
+            const container = document.getElementById('financial-stats');
+            if (!container) return;
+            
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            
+            // Calculate total revenue and outstanding balance
+            const stats = events.reduce((acc, event) => {
+                const totalCost = event.allIncluded ? 
+                    event.totalCost : 
+                    (event.services?.reduce((sum, service) => sum + (service.price || 0), 0) || 0);
+                
+                const totalPaid = event.payments?.reduce((sum, payment) => sum + (payment.amount || 0), 0) || 0;
+                
+                // Only count completed events in revenue
+                if (event.status === 'completed') {
+                    acc.totalRevenue += totalCost;
+                }
+                
+                // Only count active events in outstanding balance
+                if (event.status === 'active' || event.status === 'pending') {
+                    acc.outstandingBalance += (totalCost - totalPaid);
+                }
+                
                 return acc;
-            }, []);
-            
-            const exportData = clientsData.map(client => ({
-                'שם': client.name,
-                'טלפון': client.phone,
-                'מייל': client.email,
-                'מספר אירועים': client.events.length
-            }));
-            exportToCSV(exportData, 'לקוחות.csv');
+            }, { totalRevenue: 0, outstandingBalance: 0 });
+			            container.innerHTML = `
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="bg-white p-4 rounded-lg shadow">
+                        <p class="text-gray-600 text-sm mb-1">סה"כ הכנסות</p>
+                        <p class="text-2xl font-bold text-green-600">
+                            ₪${stats.totalRevenue.toLocaleString()}
+                        </p>
+                    </div>
+                    <div class="bg-white p-4 rounded-lg shadow">
+                        <p class="text-gray-600 text-sm mb-1">יתרות לגבייה</p>
+                        <p class="text-2xl font-bold text-red-600">
+                            ₪${stats.outstandingBalance.toLocaleString()}
+                        </p>
+                    </div>
+                </div>
+            `;
         }
 
-        function exportToCSV(data, filename) {
-            const headers = Object.keys(data[0] || {});
-            const csvContent = [
-                headers.join(','),
-                ...data.map(row => 
-                    headers.map(header => {
-                        const value = row[header] || '';
-                        return typeof value === 'string' ? `"${value}"` : value;
-                    }).join(',')
-                )
-            ].join('\n');
+        function renderActivityLog() {
+            const container = document.getElementById('activity-log');
+            if (!container) return;
             
-            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-            const link = document.createElement('a');
-            link.href = URL.createObjectURL(blob);
-            link.download = filename;
-            link.click();
+            // Collect all activities from events
+            const activities = [];
+            
+            events.forEach(event => {
+                // Add event creation
+                activities.push({
+                    type: 'event_created',
+                    date: event.createdAt,
+                    event: event,
+                    user: event.createdBy
+                });
+                
+                // Add payments
+                event.payments?.forEach(payment => {
+                    activities.push({
+                        type: 'payment_received',
+                        date: payment.recordedAt,
+                        event: event,
+                        amount: payment.amount,
+                        method: payment.method,
+                        user: payment.recordedBy
+                    });
+                });
+                
+                // Add status changes
+                if (event.statusHistory) {
+                    event.statusHistory.forEach(status => {
+                        activities.push({
+                            type: 'status_changed',
+                            date: status.date,
+                            event: event,
+                            status: status.status,
+                            user: status.by
+                        });
+                    });
+                }
+            });
+            
+            // Sort activities by date, most recent first
+            activities.sort((a, b) => new Date(b.date) - new Date(a.date));
+            
+            // Take only the last 10 activities
+            const recentActivities = activities.slice(0, 10);
+            
+            let html = '<div class="space-y-4">';
+            
+            recentActivities.forEach(activity => {
+                const activityDate = new Date(activity.date);
+                
+                let activityHTML = `
+                    <div class="bg-white p-4 rounded-lg shadow">
+                        <div class="flex justify-between items-start">
+                            <div class="flex items-start gap-3">
+                `;
+				                // Add appropriate icon based on activity type
+                switch (activity.type) {
+                    case 'event_created':
+                        activityHTML += `
+                            <div class="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center">
+                                <i class="fas fa-calendar-plus text-green-600"></i>
+                            </div>
+                        `;
+                        break;
+                    case 'payment_received':
+                        activityHTML += `
+                            <div class="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center">
+                                <i class="fas fa-shekel-sign text-blue-600"></i>
+                            </div>
+                        `;
+                        break;
+                    case 'status_changed':
+                        activityHTML += `
+                            <div class="w-8 h-8 rounded-full bg-yellow-100 flex items-center justify-center">
+                                <i class="fas fa-exchange-alt text-yellow-600"></i>
+                            </div>
+                        `;
+                        break;
+                }
+                
+                activityHTML += `
+                                <div>
+                                    <p class="font-medium">
+                `;
+                
+                // Add appropriate text based on activity type
+                switch (activity.type) {
+                    case 'event_created':
+                        activityHTML += `נוצר אירוע חדש: ${activity.event.groomName}`;
+                        break;
+                    case 'payment_received':
+                        activityHTML += `התקבל תשלום: ₪${activity.amount.toLocaleString()} (${
+                            paymentMethods[activity.method] || activity.method
+                        })`;
+                        break;
+                    case 'status_changed':
+                        activityHTML += `סטטוס האירוע שונה ל${eventStatuses[activity.status]}`;
+                        break;
+                }
+                
+                activityHTML += `
+                                    </p>
+                                    <p class="text-sm text-gray-600">
+                                        ${activityDate.toLocaleDateString('he-IL', { 
+                                            year: 'numeric', 
+                                            month: 'long', 
+                                            day: 'numeric',
+                                            hour: '2-digit',
+                                            minute: '2-digit'
+                                        })}
+                                    </p>
+                                </div>
+                            </div>
+                            <button onclick="openEventModal('${activity.event.id}')" 
+                                    class="text-blue-600 hover:text-blue-800">
+                                <i class="fas fa-external-link-alt"></i>
+                            </button>
+                        </div>
+                    </div>
+                `;
+                
+                html += activityHTML;
+            });
+            
+            if (recentActivities.length === 0) {
+                html += `
+                    <div class="text-center text-gray-500 py-4">
+                        <p>אין פעילות אחרונה</p>
+                    </div>
+                `;
+            }
+            
+            html += '</div>';
+            container.innerHTML = html;
         }
 
-        // Event listeners
-        document.getElementById('search-events').addEventListener('input', renderEvents);
-        document.getElementById('status-filter').addEventListener('change', renderEvents);
-        document.getElementById('all-included').addEventListener('change', toggleTotalCost);
-
-        // Initialize app
-        document.addEventListener('DOMContentLoaded', async function() {
-            await loadData();
-            setCurrentView('dashboard');
+        // Initialize the application
+        document.addEventListener('DOMContentLoaded', () => {
+            // Initialize tooltips, datepickers, and other UI components
+            initializeUI();
+            
+            // Load data and render appropriate view based on current page
+            loadData().then(() => {
+                if (document.getElementById('events-container')) {
+                    renderEvents();
+                } else if (document.getElementById('suppliers-container')) {
+                    renderSuppliers();
+                } else if (document.getElementById('clients-container')) {
+                    renderClients();
+                } else if (document.getElementById('dashboard-container')) {
+                    renderDashboard();
+                }
+            });
         });
     </script>
 </body>
