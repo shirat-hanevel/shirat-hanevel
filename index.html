@@ -9,7 +9,7 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/hdate@0.7.4/dist/hdate.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-	<script src="config.js"></script>
+    <script src="config.js"></script>
     <style>
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -107,7 +107,7 @@
         <!-- Main Content -->
         <main class="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
             <div class="px-4 py-6 sm:px-0">
-			                <!-- Dashboard View -->
+                <!-- Dashboard View -->
                 <div id="dashboard-view" class="view space-y-6">
                     <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
                         <div class="glass rounded-lg shadow-lg p-6">
@@ -208,7 +208,7 @@
                         </div>
                     </div>
                 </div>
-				                <!-- Suppliers View -->
+                <!-- Suppliers View -->
                 <div id="suppliers-view" class="view hidden">
                     <div class="glass rounded-lg shadow-lg p-6">
                         <div class="flex justify-between items-center mb-6">
@@ -286,7 +286,7 @@
                                 <input type="time" id="start-time" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
                             </div>
                         </div>
-						                        <div>
+                        <div>
                             <label class="block text-sm font-medium text-gray-700 mb-1">קונספט האירוע</label>
                             <input type="text" id="event-concept" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
                         </div>
@@ -374,7 +374,7 @@
                             </div>
                         </div>
                     </div>
-					                    <div class="flex justify-end gap-3 mt-6 pt-6 border-t">
+                    <div class="flex justify-end gap-3 mt-6 pt-6 border-t">
                         <button onclick="closeEventModal()" class="px-4 py-2 text-gray-600 hover:text-gray-800">
                             ביטול
                         </button>
@@ -392,6 +392,28 @@
     </div>
 
     <script>
+        // פונקציית בדיקת חיבור לסופהבייס
+        async function testSupabaseConnection() {
+            try {
+                console.log('Testing Supabase connection...');
+                const { data, error } = await supabaseClient
+                    .from('events')
+                    .select('count')
+                    .limit(1);
+                
+                if (error) {
+                    console.error('Supabase connection error:', error);
+                    return false;
+                }
+                
+                console.log('Supabase connection successful!');
+                return true;
+            } catch (err) {
+                console.error('Supabase connection error:', err);
+                return false;
+            }
+        }
+
         // Global variables
         let currentView = 'dashboard';
         let currentDate = new Date();
@@ -422,15 +444,16 @@
             'תשרי', 'חשון', 'כסלו', 'טבת', 'שבט', 'אדר', 'ניסן', 'אייר', 'סיון', 'תמוז', 'אב', 'אלול'
         ];
 
-        // Initialize Supabase client
-        const supabase = supabaseClient.createClient(
-            'https://hstsknresadmypumqrrc.supabase.co',
-            'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhzdHNrbnJlc2FkbXlwdW1xcnJjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTE5OTQ0NTQsImV4cCI6MjA2NzU3MDQ1NH0.dlfmEIKpWJ9loc-LcuOeJESLlSgNIktbVF6Lm9DoRcQ'
-        );
-
         // Initialize the app when the document is loaded
         document.addEventListener('DOMContentLoaded', async () => {
             try {
+                // בדיקת חיבור לסופהבייס
+                const isConnected = await testSupabaseConnection();
+                if (!isConnected) {
+                    alert('שגיאה בהתחברות למסד הנתונים. אנא רענן את הדף ונסה שוב.');
+                    return;
+                }
+
                 await loadData();
                 setCurrentView('dashboard');
             } catch (error) {
@@ -438,11 +461,12 @@
                 alert('אירעה שגיאה באתחול האפליקציה');
             }
         });
-		        // Load data from Supabase
+
+        // Load data from Supabase
         async function loadData() {
             try {
                 // Load events
-                const { data: eventsData, error: eventsError } = await supabase
+                const { data: eventsData, error: eventsError } = await supabaseClient
                     .from('events')
                     .select('*');
                 
@@ -450,7 +474,7 @@
                 events = eventsData || [];
 
                 // Load suppliers
-                const { data: suppliersData, error: suppliersError } = await supabase
+                const { data: suppliersData, error: suppliersError } = await supabaseClient
                     .from('suppliers')
                     .select('*');
                 
@@ -458,7 +482,7 @@
                 suppliers = suppliersData || [];
 
                 // Load clients
-                const { data: clientsData, error: clientsError } = await supabase
+                const { data: clientsData, error: clientsError } = await supabaseClient
                     .from('clients')
                     .select('*');
                 
@@ -540,7 +564,7 @@
                 alert('אירעה שגיאה בטעינת הדשבורד');
             }
         }
-		        // Calendar functions
+        // Calendar functions
         function renderCalendar() {
             try {
                 const container = document.getElementById('calendar-container');
@@ -641,7 +665,7 @@
                 return `${day} ${hebrewMonths[monthIndex]} ${jewishYear}`;
             }
         }
-		        // Jewish holidays
+        // Jewish holidays
         function getJewishHolidays(year, month) {
             try {
                 const holidays = {};
@@ -740,7 +764,7 @@
                 } else {
                     addScheduleItem();
                 }
-				                // Fill services
+                // Fill services
                 if (event.services && event.services.length > 0) {
                     event.services.forEach(service => addService(service));
                 } else {
@@ -791,7 +815,7 @@
 
                 if (currentEventId) {
                     // Update existing event
-                    const { error } = await supabase
+                    const { error } = await supabaseClient
                         .from('events')
                         .update(eventData)
                         .eq('id', currentEventId);
@@ -804,7 +828,7 @@
                     }
                 } else {
                     // Create new event
-                    const { data, error } = await supabase
+                    const { data, error } = await supabaseClient
                         .from('events')
                         .insert([{ ...eventData, createdAt: new Date().toISOString(), createdBy: 'shirat-hanevel' }])
                         .select();
@@ -828,13 +852,13 @@
                 alert('אירעה שגיאה בשמירת האירוע');
             }
         }
-		        async function deleteEvent() {
+        async function deleteEvent() {
             if (!currentEventId) return;
             
             if (!confirm('האם אתה בטוח שברצונך למחוק את האירוע?')) return;
             
             try {
-                const { error } = await supabase
+                const { error } = await supabaseClient
                     .from('events')
                     .delete()
                     .eq('id', currentEventId);
@@ -924,7 +948,7 @@
             });
             return payments;
         }
-		        // Dynamic form functions
+        // Dynamic form functions
         function addParent(data = null) {
             const container = document.getElementById('parents-container');
             const row = document.createElement('div');
@@ -1000,7 +1024,7 @@
             container.appendChild(row);
             updateServiceTotal();
         }
-		        function addPayment(data = null) {
+        function addPayment(data = null) {
             const container = document.getElementById('payments-container');
             const row = document.createElement('div');
             row.className = 'payment-row flex gap-3 mb-3';
@@ -1072,7 +1096,7 @@
             document.getElementById('services-total-amount').textContent = total.toLocaleString();
             updatePaymentsBalance();
         }
-		        function updatePaymentsBalance() {
+        function updatePaymentsBalance() {
             const totalPaid = Array.from(document.querySelectorAll('.payment-row'))
                 .reduce((sum, row) => {
                     const amount = parseFloat(row.querySelector('[name="payment-amount"]').value) || 0;
@@ -1171,7 +1195,7 @@
             
             container.innerHTML = eventsHTML;
         }
-		        // Suppliers management functions
+        // Suppliers management functions
         async function createNewSupplier() {
             try {
                 const name = prompt('שם הספק:');
@@ -1192,7 +1216,7 @@
                     modifiedBy: 'shirat-hanevel'
                 };
 
-                const { data, error } = await supabase
+                const { data, error } = await supabaseClient
                     .from('suppliers')
                     .insert([supplierData])
                     .select();
@@ -1230,7 +1254,7 @@
                     modifiedBy: 'shirat-hanevel'
                 };
 
-                const { error } = await supabase
+                const { error } = await supabaseClient
                     .from('suppliers')
                     .update(supplierData)
                     .eq('id', supplierId);
@@ -1248,11 +1272,11 @@
                 alert('אירעה שגיאה בעריכת הספק');
             }
         }
-		        async function deleteSupplier(supplierId) {
+        async function deleteSupplier(supplierId) {
             if (!confirm('האם אתה בטוח שברצונך למחוק את הספק?')) return;
             
             try {
-                const { error } = await supabase
+                const { error } = await supabaseClient
                     .from('suppliers')
                     .delete()
                     .eq('id', supplierId);
@@ -1330,7 +1354,7 @@
             
             container.innerHTML = suppliersHTML;
         }
-		        // Clients management functions
+        // Clients management functions
         async function createNewClient() {
             try {
                 const name = prompt('שם הלקוח:');
@@ -1353,7 +1377,7 @@
                     modifiedBy: 'shirat-hanevel'
                 };
 
-                const { data, error } = await supabase
+                const { data, error } = await supabaseClient
                     .from('clients')
                     .insert([clientData])
                     .select();
@@ -1393,7 +1417,7 @@
                     modifiedBy: 'shirat-hanevel'
                 };
 
-                const { error } = await supabase
+                const { error } = await supabaseClient
                     .from('clients')
                     .update(clientData)
                     .eq('id', clientId);
@@ -1411,11 +1435,11 @@
                 alert('אירעה שגיאה בעריכת הלקוח');
             }
         }
-		        async function deleteClient(clientId) {
+        async function deleteClient(clientId) {
             if (!confirm('האם אתה בטוח שברצונך למחוק את הלקוח?')) return;
             
             try {
-                const { error } = await supabase
+                const { error } = await supabaseClient
                     .from('clients')
                     .delete()
                     .eq('id', clientId);
@@ -1497,7 +1521,7 @@
                                 </div>
                             ` : ''}
                         </div>
-						                        ${clientEvents.length > 0 ? `
+                        ${clientEvents.length > 0 ? `
                             <div class="mt-4">
                                 <h4 class="text-lg font-semibold text-gray-700 mb-2">אירועים קשורים:</h4>
                                 <div class="space-y-2">
@@ -1580,7 +1604,7 @@
                     </div>
                 `;
             });
-			            if (upcomingEvents.length === 0) {
+            if (upcomingEvents.length === 0) {
                 html += `
                     <div class="text-center text-gray-500 py-4">
                         <p>אין אירועים קרובים</p>
@@ -1662,7 +1686,7 @@
                 
                 return acc;
             }, { totalRevenue: 0, outstandingBalance: 0 });
-			            container.innerHTML = `
+            container.innerHTML = `
                 <div class="grid grid-cols-2 gap-4">
                     <div class="bg-white p-4 rounded-lg shadow">
                         <p class="text-gray-600 text-sm mb-1">סה"כ הכנסות</p>
@@ -1738,7 +1762,7 @@
                         <div class="flex justify-between items-start">
                             <div class="flex items-start gap-3">
                 `;
-				                // Add appropriate icon based on activity type
+                // Add appropriate icon based on activity type
                 switch (activity.type) {
                     case 'event_created':
                         activityHTML += `
