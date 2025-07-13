@@ -795,8 +795,8 @@
         async function saveEvent() {
             try {
                 const eventData = {
-                    groomName: document.getElementById('groom-name').value,
-                    groomLastName: document.getElementById('groom-lastname').value,
+                    groom_name: document.getElementById('groom-name').value,
+                    groom_last_name: document.getElementById('groom-lastname').value,
                     date: document.getElementById('event-date').value,
                     status: document.getElementById('event-status').value,
                     participants: parseInt(document.getElementById('participants').value) || 0,
@@ -809,7 +809,6 @@
                     schedule: getScheduleData(),
                     services: getServicesData(),
                     payments: getPaymentsData(),
-                    lastModified: new Date().toISOString(),
                     modifiedBy: 'shirat-hanevel'
                 };
 
